@@ -1,0 +1,1111 @@
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ArrowRight,
+  Bookmark,
+  Building2,
+  Check,
+  ChevronDown,
+  Mail,
+  MapPin,
+  Menu,
+  Phone,
+  Search,
+  X,
+} from 'lucide-react';
+import {
+  HERO_IMAGE,
+  NOSOTRAS_PILLARS,
+  NosotrasTabId,
+  OperationType,
+  PROPERTIES,
+  PropertyListing,
+  RegionState,
+  SERVICES_LIST,
+  VALORES_LIST,
+} from './data/properties';
+import { BrandMark } from './components/BrandLogo';
+import { PropertyCard } from './components/PropertyCard';
+import { PropertyModal } from './components/PropertyModal';
+
+type OperationFilter = 'Todas' | OperationType;
+type RegionFilter = 'Todas' | RegionState;
+type SortOption = 'featured' | 'price-asc' | 'price-desc' | 'area-desc';
+
+const NOSOTRAS_SUBITEMS: { id: NosotrasTabId; label: string }[] = [
+  { id: 'mision', label: 'Misión' },
+  { id: 'vision', label: 'Visión' },
+  { id: 'valores', label: 'Valores' },
+  { id: 'alianzas', label: 'Alianzas' },
+];
+
+export default function App() {
+  // Navigation & Nosotras dropdown
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileNosotrasOpen, setMobileNosotrasOpen] = useState(true);
+  const [nosotrasDropdownOpen, setNosotrasDropdownOpen] = useState(false);
+  const [activeNosotrasTab, setActiveNosotrasTab] = useState<NosotrasTabId>('mision');
+  const nosotrasMenuRef = useRef<HTMLDivElement>(null);
+
+  // Hero & catalog filtering state
+  const [operationFilter, setOperationFilter] = useState<OperationFilter>('Todas');
+  const [regionFilter, setRegionFilter] = useState<RegionFilter>('Todas');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<SortOption>('featured');
+  const [onlySaved, setOnlySaved] = useState(false);
+  const [savedIds, setSavedIds] = useState<string[]>(['qro-campanario-01']);
+
+  // Hero quick-search bar controlled state
+  const [heroOp, setHeroOp] = useState<OperationFilter>('Todas');
+  const [heroRegion, setHeroRegion] = useState<RegionFilter>('Todas');
+
+  // Hero image resilience
+  const [heroImgError, setHeroImgError] = useState(false);
+
+  // Active property modal
+  const [selectedProperty, setSelectedProperty] = useState<PropertyListing | null>(null);
+
+  // Advisory contact form state
+  const [contactName, setContactName] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [contactIntent, setContactIntent] = useState('Comprar propiedad');
+  const [contactNotes, setContactNotes] = useState('');
+  const [contactError, setContactError] = useState('');
+  const [contactSubmitted, setContactSubmitted] = useState(false);
+
+  useEffect(() => {
+    const handleOutside = (e: MouseEvent) => {
+      if (nosotrasMenuRef.current && !nosotrasMenuRef.current.contains(e.target as Node)) {
+        setNosotrasDropdownOpen(false);
+      }
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setNosotrasDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutside);
+    window.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      window.removeEventListener('keydown', handleEscape);
+    };
+  }, []);
+
+  const activeNosotrasPillar = useMemo(
+    () => NOSOTRAS_PILLARS.find((p) => p.id === activeNosotrasTab) ?? NOSOTRAS_PILLARS[0],
+    [activeNosotrasTab]
+  );
+
+  const filteredProperties = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    const list = PROPERTIES.filter((item) => {
+      if (operationFilter !== 'Todas' && item.operation !== operationFilter) return false;
+      if (regionFilter !== 'Todas' && item.state !== regionFilter) return false;
+      if (onlySaved && !savedIds.includes(item.id)) return false;
+      if (q) {
+        const haystack =
+          `${item.title} ${item.zone} ${item.state} ${item.folio} ${item.category}`.toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+      return true;
+    });
+
+    if (sortBy === 'price-asc') {
+      return [...list].sort((a, b) => a.priceMxn - b.priceMxn);
+    }
+    if (sortBy === 'price-desc') {
+      return [...list].sort((a, b) => b.priceMxn - a.priceMxn);
+    }
+    if (sortBy === 'area-desc') {
+      return [...list].sort((a, b) => b.areaLandM2 - a.areaLandM2);
+    }
+    return list;
+  }, [operationFilter, regionFilter, onlySaved, savedIds, searchQuery, sortBy]);
+
+  const toggleSave = (id: string) => {
+    setSavedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const scrollToSection = (id: string) => {
+    setMobileMenuOpen(false);
+    setNosotrasDropdownOpen(false);
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const handleSelectNosotrasSubitem = (tabId: NosotrasTabId) => {
+    setActiveNosotrasTab(tabId);
+    setNosotrasDropdownOpen(false);
+    setMobileMenuOpen(false);
+    const el = document.getElementById('nosotras');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const handleHeroSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setOperationFilter(heroOp);
+    setRegionFilter(heroRegion);
+    setOnlySaved(false);
+    scrollToSection('inmuebles');
+  };
+
+  const handleResetFilters = () => {
+    setOperationFilter('Todas');
+    setRegionFilter('Todas');
+    setSearchQuery('');
+    setOnlySaved(false);
+    setSortBy('featured');
+  };
+
+  const handleServiceSelect = (intent: string) => {
+    setContactIntent(intent);
+    setContactSubmitted(false);
+    scrollToSection('contacto');
+  };
+
+  const handleContactSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contactName.trim() || !contactEmail.includes('@') || contactPhone.trim().length < 8) {
+      setContactError(
+        'Por favor completa tu nombre, correo electrónico válido y teléfono de contacto.'
+      );
+      return;
+    }
+    setContactError('');
+    setContactSubmitted(true);
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col bg-[#F9F8F6] text-[#161513] overflow-x-clip">
+      {/* Strict 3-Zone Top Bar */}
+      <header className="sticky top-0 z-40 bg-[#F9F8F6]/95 backdrop-blur-xs border-b border-[#E2DFD9]">
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 h-16 flex items-center justify-between gap-3 md:gap-8">
+          {/* Zone 1: Single-line Brand Wordmark + Custom Monogram */}
+          <a
+            href="#inicio"
+            className="inline-flex items-center gap-2 sm:gap-3 min-w-0 whitespace-nowrap md:shrink-0 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#1B4332]"
+          >
+            <BrandMark
+              className="w-6 h-6 sm:w-7 sm:h-7 shrink-0"
+              strokeColor="#161513"
+              accentColor="#9A7B3E"
+            />
+            <span className="font-editorial text-[17px] sm:text-xl lg:text-[22px] font-semibold tracking-tight text-[#161513] truncate">
+              Mujer Inmobiliaria &amp; Asociadas
+            </span>
+          </a>
+
+          {/* Zone 2: 5 Nav Items matching Inicio, Nosotras (dropdown), Servicios, Inmuebles, Contacto */}
+          <nav
+            aria-label="Navegación principal"
+            className="hidden md:flex items-center gap-6 lg:gap-7 text-sm font-medium text-[#57534E]"
+          >
+            <a
+              href="#inicio"
+              className="hover:text-[#161513] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
+            >
+              Inicio
+            </a>
+
+            {/* Nosotras Dropdown */}
+            <div ref={nosotrasMenuRef} className="relative shrink-0">
+              <button
+                type="button"
+                aria-expanded={nosotrasDropdownOpen}
+                aria-haspopup="menu"
+                onClick={() => setNosotrasDropdownOpen((prev) => !prev)}
+                className={`inline-flex items-center gap-1 hover:text-[#161513] transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                  nosotrasDropdownOpen ? 'text-[#161513] underline underline-offset-4' : ''
+                }`}
+              >
+                <span>Nosotras</span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 transition-transform duration-150 ${
+                    nosotrasDropdownOpen ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+
+              {nosotrasDropdownOpen && (
+                <div
+                  role="menu"
+                  aria-label="Subsecciones de Nosotras"
+                  className="absolute left-0 top-full mt-3 w-48 bg-white border border-[#E2DFD9] shadow-lg py-1.5 z-50"
+                >
+                  {NOSOTRAS_SUBITEMS.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      role="menuitem"
+                      onClick={() => handleSelectNosotrasSubitem(item.id)}
+                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors cursor-pointer flex items-center justify-between ${
+                        activeNosotrasTab === item.id
+                          ? 'bg-[#F3F1EC] text-[#1B4332] font-semibold'
+                          : 'text-[#161513] hover:bg-[#F9F8F6]'
+                      }`}
+                    >
+                      <span>{item.label}</span>
+                      {activeNosotrasTab === item.id && (
+                        <span className="text-[10px] font-mono text-[#9A7B3E]">·</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <a
+              href="#servicios"
+              className="hover:text-[#161513] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
+            >
+              Servicios
+            </a>
+            <a
+              href="#inmuebles"
+              className="hover:text-[#161513] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
+            >
+              Inmuebles
+            </a>
+            <a
+              href="#contacto"
+              className="hover:text-[#161513] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
+            >
+              Contacto
+            </a>
+          </nav>
+
+          {/* Zone 3: 1 Primary Action + Mobile Menu Trigger */}
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              type="button"
+              onClick={() => scrollToSection('contacto')}
+              className="hidden sm:inline-flex items-center px-4 py-2 bg-[#1B4332] text-white text-xs font-semibold hover:bg-[#143326] transition-colors whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1B4332]"
+            >
+              Agendar Asesoría
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen((prev) => !prev)}
+              aria-expanded={mobileMenuOpen}
+              aria-label={mobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
+              className="md:hidden w-10 h-10 inline-flex items-center justify-center border border-[#E2DFD9] bg-white text-[#161513] cursor-pointer"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Drawer */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-[#E2DFD9] bg-[#F9F8F6] px-4 sm:px-6 py-4 space-y-3">
+            <div className="flex flex-col space-y-1 text-sm font-medium text-[#161513]">
+              <a
+                href="#inicio"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-2 border-b border-[#E2DFD9]/60"
+              >
+                Inicio
+              </a>
+
+              {/* Mobile Nosotras Accordion */}
+              <div className="border-b border-[#E2DFD9]/60 py-1">
+                <button
+                  type="button"
+                  onClick={() => setMobileNosotrasOpen((prev) => !prev)}
+                  className="w-full py-1.5 flex items-center justify-between text-left cursor-pointer"
+                >
+                  <span>Nosotras</span>
+                  <ChevronDown
+                    className={`w-4 h-4 text-[#57534E] transition-transform ${
+                      mobileNosotrasOpen ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+                {mobileNosotrasOpen && (
+                  <div className="pl-4 pb-2 pt-1 flex flex-col space-y-1.5 text-xs text-[#57534E]">
+                    {NOSOTRAS_SUBITEMS.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => handleSelectNosotrasSubitem(item.id)}
+                        className={`text-left py-1 cursor-pointer ${
+                          activeNosotrasTab === item.id
+                            ? 'text-[#1B4332] font-semibold'
+                            : 'hover:text-[#161513]'
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <a
+                href="#servicios"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-2 border-b border-[#E2DFD9]/60"
+              >
+                Servicios
+              </a>
+              <a
+                href="#inmuebles"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-2 border-b border-[#E2DFD9]/60"
+              >
+                Inmuebles
+              </a>
+              <a
+                href="#contacto"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-2"
+              >
+                Contacto
+              </a>
+            </div>
+            <button
+              type="button"
+              onClick={() => scrollToSection('contacto')}
+              className="w-full py-2.5 px-4 bg-[#1B4332] text-white text-xs font-semibold cursor-pointer"
+            >
+              Agendar Asesoría
+            </button>
+          </div>
+        )}
+      </header>
+
+      <main className="flex-1">
+        {/* Section 1: Inicio (Hero Split + Quick Finder) */}
+        <section id="inicio" className="border-b border-[#E2DFD9]">
+          <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 py-10 sm:py-14 lg:py-20">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-10 lg:gap-12 items-stretch">
+              {/* Left Narrative & Live Search */}
+              <div className="lg:col-span-6 flex flex-col justify-between gap-7 sm:gap-8 min-w-0">
+                <div>
+                  <p className="text-[11px] sm:text-xs uppercase tracking-[0.16em] sm:tracking-[0.22em] text-[#57534E]">
+                    Santiago de Querétaro · Yucatán · Estado de México
+                  </p>
+                  <h1 className="mt-3 sm:mt-4 text-[clamp(2.05rem,4.3vw,3.85rem)] font-medium tracking-tight text-[#161513] leading-[1.08] [text-wrap:balance]">
+                    Patrimonio inmobiliario con criterio arquitectónico y certeza jurídica.
+                  </h1>
+                  <p className="mt-5 text-[15px] sm:text-base leading-relaxed text-[#57534E] max-w-xl">
+                    Firma mexicana dirigida por mujeres especialistas en compra, venta, renta y
+                    desarrollos. Acompañamiento gratuito y transparente desde la valuación hasta la
+                    firma notarial.
+                  </p>
+                </div>
+
+                {/* Integrated Property Finder */}
+                <form
+                  onSubmit={handleHeroSearch}
+                  className="bg-white border border-[#E2DFD9] p-5 space-y-4"
+                >
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label
+                        htmlFor="hero-op"
+                        className="block text-[11px] uppercase tracking-[0.16em] text-[#57534E] mb-1.5"
+                      >
+                        Operación
+                      </label>
+                      <select
+                        id="hero-op"
+                        value={heroOp}
+                        onChange={(e) => setHeroOp(e.target.value as OperationFilter)}
+                        className="w-full px-3 py-2.5 text-sm bg-[#F9F8F6] border border-[#E2DFD9] text-[#161513] focus:outline-none focus:border-[#1B4332]"
+                      >
+                        <option value="Todas">Todas las operaciones</option>
+                        <option value="Venta">Venta residencial</option>
+                        <option value="Renta">Renta ejecutiva</option>
+                        <option value="Terreno">Terrenos &amp; desarrollos</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="hero-region"
+                        className="block text-[11px] uppercase tracking-[0.16em] text-[#57534E] mb-1.5"
+                      >
+                        Plaza estratégica
+                      </label>
+                      <select
+                        id="hero-region"
+                        value={heroRegion}
+                        onChange={(e) => setHeroRegion(e.target.value as RegionFilter)}
+                        className="w-full px-3 py-2.5 text-sm bg-[#F9F8F6] border border-[#E2DFD9] text-[#161513] focus:outline-none focus:border-[#1B4332]"
+                      >
+                        <option value="Todas">Querétaro, Yucatán y Edo. Méx.</option>
+                        <option value="Querétaro">Querétaro</option>
+                        <option value="Yucatán">Yucatán</option>
+                        <option value="Estado de México">Estado de México</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
+                    <button
+                      type="submit"
+                      className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-[#1B4332] text-white text-xs font-semibold hover:bg-[#143326] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                    >
+                      <span>Explorar inmuebles</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => scrollToSection('servicios')}
+                      className="inline-flex items-center justify-center px-4 py-3 border border-[#E2DFD9] text-xs font-medium text-[#161513] hover:border-[#161513] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                    >
+                      Conocer servicios
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* Right Focal Visual */}
+              <div className="lg:col-span-6 flex flex-col min-w-0">
+                <div className="relative flex-1 min-h-[260px] sm:min-h-[360px] lg:min-h-[460px] bg-[#EFECE7] border border-[#E2DFD9] overflow-hidden">
+                  {!heroImgError ? (
+                    <img
+                      src={HERO_IMAGE}
+                      alt="Residencia contemporánea de piedra caliza con espejo de agua en Querétaro"
+                      referrerPolicy="no-referrer"
+                      onError={() => setHeroImgError(true)}
+                      className="w-full h-full lg:h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-[#57534E] bg-gradient-to-br from-[#EFECE7] to-[#E2DFD9] p-8">
+                      <Building2 className="w-10 h-10" />
+                      <span className="font-editorial text-2xl text-[#161513]">
+                        Mujer Inmobiliaria &amp; Asociadas
+                      </span>
+                    </div>
+                  )}
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6">
+                    <p className="text-xs text-white/80">
+                      Cumbres del Lago · Juriquilla, Querétaro
+                    </p>
+                    <p className="mt-1 font-editorial text-xl text-white">
+                      Residencia Cantilever &amp; Espejo de Agua
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Full-Width 4-Column Capabilities Strip */}
+            <div className="mt-12 pt-8 border-t border-[#E2DFD9] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div>
+                <p className="font-mono text-xs text-[#9A7B3E] tabular-nums">01</p>
+                <h2 className="mt-1 font-sans text-sm font-semibold text-[#161513]">
+                  Asesoría inicial sin costo
+                </h2>
+                <p className="mt-1 text-xs leading-relaxed text-[#57534E]">
+                  Diagnóstico patrimonial personalizado para compradores, propietarios e
+                  inversionistas.
+                </p>
+              </div>
+              <div>
+                <p className="font-mono text-xs text-[#9A7B3E] tabular-nums">02</p>
+                <h2 className="mt-1 font-sans text-sm font-semibold text-[#161513]">
+                  Valuación comercial real
+                </h2>
+                <p className="mt-1 text-xs leading-relaxed text-[#57534E]">
+                  Análisis comparativo por metro cuadrado y cierres escriturados por corredor.
+                </p>
+              </div>
+              <div>
+                <p className="font-mono text-xs text-[#9A7B3E] tabular-nums">03</p>
+                <h2 className="mt-1 font-sans text-sm font-semibold text-[#161513]">
+                  Dictamen legal y fiscal
+                </h2>
+                <p className="mt-1 text-xs leading-relaxed text-[#57534E]">
+                  Revisión previa de gravámenes, escrituras, regímenes y cálculo de impuestos.
+                </p>
+              </div>
+              <div>
+                <p className="font-mono text-xs text-[#9A7B3E] tabular-nums">04</p>
+                <h2 className="mt-1 font-sans text-sm font-semibold text-[#161513]">
+                  Red de asesoras en 3 plazas
+                </h2>
+                <p className="mt-1 text-xs leading-relaxed text-[#57534E]">
+                  Operación directa en Querétaro, Mérida y corredores clave del Estado de México.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Section 2: Nosotras (Misión, Visión, Valores, Alianzas) */}
+        <section id="nosotras" className="py-14 sm:py-20 lg:py-24 bg-[#F3F1EC]">
+          <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10">
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-8 border-b border-[#E2DFD9]">
+              <div className="max-w-2xl">
+                <p className="text-xs uppercase tracking-[0.22em] text-[#57534E]">
+                  Nosotras · Identidad Institucional
+                </p>
+                <h2 className="mt-2 text-3xl lg:text-4xl font-medium tracking-tight text-[#161513] [text-wrap:balance]">
+                  Mujeres líderes construyendo certeza patrimonial en México
+                </h2>
+              </div>
+
+              {/* Interactive Pillar Switcher */}
+              <div
+                role="tablist"
+                aria-label="Pilares institucionales de Nosotras"
+                className="inline-flex flex-wrap items-center gap-1 p-1 bg-white border border-[#E2DFD9] self-start lg:self-auto max-w-full"
+              >
+                {NOSOTRAS_PILLARS.map((pillar) => (
+                  <button
+                    key={pillar.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeNosotrasTab === pillar.id}
+                    onClick={() => setActiveNosotrasTab(pillar.id)}
+                    className={`px-3.5 py-2 text-xs font-medium transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                      activeNosotrasTab === pillar.id
+                        ? 'bg-[#1B4332] text-white'
+                        : 'text-[#57534E] hover:text-[#161513]'
+                    }`}
+                  >
+                    {pillar.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Active Pillar Spotlight */}
+            <div className="mt-8 bg-white border border-[#E2DFD9] p-6 sm:p-10">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+                <div className="lg:col-span-6 space-y-4 min-w-0">
+                  <p className="font-mono text-xs uppercase tracking-[0.18em] text-[#9A7B3E]">
+                    {activeNosotrasPillar.kicker}
+                  </p>
+                  <h3 className="text-2xl sm:text-3xl font-medium tracking-tight text-[#161513] leading-snug">
+                    {activeNosotrasPillar.title}
+                  </h3>
+                  <p className="text-[15px] leading-relaxed text-[#57534E]">
+                    {activeNosotrasPillar.body}
+                  </p>
+                </div>
+
+                <div className="lg:col-span-6 min-w-0">
+                  {activeNosotrasTab === 'valores' ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {VALORES_LIST.map((valor) => (
+                        <div
+                          key={valor.number}
+                          className="p-4 bg-[#F9F8F6] border border-[#E2DFD9]"
+                        >
+                          <p className="font-mono text-[11px] text-[#9A7B3E] tabular-nums">
+                            {valor.number}
+                          </p>
+                          <p className="mt-1 font-sans text-sm font-semibold text-[#161513]">
+                            {valor.name}
+                          </p>
+                          <p className="mt-1 text-xs leading-relaxed text-[#57534E]">
+                            {valor.detail}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="border-t border-[#E2DFD9] divide-y divide-[#E2DFD9]">
+                      {activeNosotrasPillar.highlights.map((item, idx) => (
+                        <div key={item} className="py-4 flex items-start gap-3.5">
+                          <span className="font-mono text-xs text-[#9A7B3E] mt-0.5 tabular-nums">
+                            0{idx + 1}
+                          </span>
+                          <p className="text-sm leading-relaxed text-[#161513]">{item}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* 4-Pillar Quick Index */}
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {NOSOTRAS_PILLARS.map((pillar) => {
+                const isActive = activeNosotrasTab === pillar.id;
+                return (
+                  <button
+                    key={pillar.id}
+                    id={pillar.id}
+                    type="button"
+                    onClick={() => setActiveNosotrasTab(pillar.id)}
+                    className={`text-left p-5 border transition-colors cursor-pointer ${
+                      isActive
+                        ? 'bg-[#161513] text-white border-[#161513]'
+                        : 'bg-white text-[#161513] border-[#E2DFD9] hover:border-[#161513]/40'
+                    }`}
+                  >
+                    <p
+                      className={`font-mono text-[11px] uppercase tracking-[0.16em] ${
+                        isActive ? 'text-[#D4B475]' : 'text-[#9A7B3E]'
+                      }`}
+                    >
+                      {pillar.label}
+                    </p>
+                    <p
+                      className={`mt-2 text-xs leading-relaxed line-clamp-3 ${
+                        isActive ? 'text-[#D6D3D1]' : 'text-[#57534E]'
+                      }`}
+                    >
+                      {pillar.body}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* Section 3: Servicios */}
+        <section id="servicios" className="py-14 sm:py-20 lg:py-24 border-t border-[#E2DFD9]">
+          <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10">
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-8 border-b border-[#E2DFD9]">
+              <div className="max-w-2xl">
+                <p className="text-xs uppercase tracking-[0.22em] text-[#57534E]">
+                  Servicios Especializados
+                </p>
+                <h2 className="mt-2 text-3xl lg:text-4xl font-medium tracking-tight text-[#161513] [text-wrap:balance]">
+                  Soluciones integrales para compra, venta, renta y desarrollos
+                </h2>
+              </div>
+              <p className="text-sm text-[#57534E] max-w-md">
+                Asesoría gratuita inicial combinada con representación comercial, valuación técnica
+                y blindaje jurídico.
+              </p>
+            </div>
+
+            <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6">
+              {SERVICES_LIST.map((service) => (
+                <div
+                  key={service.number}
+                  className="bg-white border border-[#E2DFD9] p-6 sm:p-8 flex flex-col justify-between gap-6"
+                >
+                  <div>
+                    <p className="font-mono text-xs text-[#9A7B3E] tabular-nums">
+                      {service.number}
+                    </p>
+                    <h3 className="mt-2 text-2xl font-medium tracking-tight text-[#161513]">
+                      {service.title}
+                    </h3>
+                    <p className="mt-3 text-sm leading-relaxed text-[#57534E]">
+                      {service.summary}
+                    </p>
+                    <ul className="mt-5 pt-4 border-t border-[#E2DFD9] space-y-2">
+                      {service.deliverables.map((del) => (
+                        <li key={del} className="text-xs text-[#44403C] flex items-start gap-2">
+                          <span className="text-[#9A7B3E]" aria-hidden="true">
+                            —
+                          </span>
+                          <span>{del}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => handleServiceSelect(service.contactIntent)}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1B4332] hover:underline cursor-pointer"
+                    >
+                      <span>Solicitar este servicio</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Section 4: Inmuebles (Curated Property Portfolio) */}
+        <section id="inmuebles" className="py-14 sm:py-20 lg:py-24 bg-[#F3F1EC] border-t border-[#E2DFD9]">
+          <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10">
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-8 border-b border-[#E2DFD9]">
+              <div>
+                <p className="text-xs uppercase tracking-[0.22em] text-[#57534E]">
+                  Inmuebles · Portafolio Verificado
+                </p>
+                <h2 className="mt-2 text-3xl lg:text-4xl font-medium tracking-tight text-[#161513]">
+                  Propiedades seleccionadas
+                </h2>
+              </div>
+
+              {/* Segmented Operation Tabs */}
+              <div
+                role="tablist"
+                aria-label="Filtrar por tipo de operación"
+                className="inline-flex flex-wrap items-center gap-1 p-1 bg-white border border-[#E2DFD9] self-start lg:self-auto max-w-full"
+              >
+                {(['Todas', 'Venta', 'Renta', 'Terreno'] as OperationFilter[]).map((op) => (
+                  <button
+                    key={op}
+                    type="button"
+                    role="tab"
+                    aria-selected={operationFilter === op}
+                    onClick={() => setOperationFilter(op)}
+                    className={`px-3 sm:px-3.5 py-2 text-xs font-medium transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                      operationFilter === op
+                        ? 'bg-[#1B4332] text-white'
+                        : 'text-[#57534E] hover:text-[#161513]'
+                    }`}
+                  >
+                    {op === 'Terreno' ? 'Terrenos' : op}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Filter Utility Bar */}
+            <div className="py-5 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#E2DFD9]">
+              <div className="flex flex-wrap items-center gap-3 flex-1 min-w-0">
+                <div className="relative w-full sm:flex-1 sm:min-w-[200px] sm:max-w-sm">
+                  <Search className="w-4 h-4 text-[#57534E] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="search"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Buscar por zona, nombre o folio..."
+                    aria-label="Buscar propiedades"
+                    className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-[#E2DFD9] text-[#161513] focus:outline-none focus:border-[#1B4332]"
+                  />
+                </div>
+
+                <select
+                  aria-label="Filtrar por estado"
+                  value={regionFilter}
+                  onChange={(e) => setRegionFilter(e.target.value as RegionFilter)}
+                  className="flex-1 sm:flex-none px-3 py-2 text-xs bg-white border border-[#E2DFD9] text-[#161513] focus:outline-none focus:border-[#1B4332]"
+                >
+                  <option value="Todas">Todas las plazas</option>
+                  <option value="Querétaro">Querétaro</option>
+                  <option value="Yucatán">Yucatán</option>
+                  <option value="Estado de México">Estado de México</option>
+                </select>
+
+                <button
+                  type="button"
+                  onClick={() => setOnlySaved((prev) => !prev)}
+                  aria-pressed={onlySaved}
+                  className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium border transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                    onlySaved
+                      ? 'bg-[#1B4332] text-white border-[#1B4332]'
+                      : 'bg-white text-[#161513] border-[#E2DFD9] hover:border-[#161513]'
+                  }`}
+                >
+                  <Bookmark className={`w-3.5 h-3.5 ${onlySaved ? 'fill-current' : ''}`} />
+                  <span className="tabular-nums">Guardadas ({savedIds.length})</span>
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between md:justify-end gap-4">
+                <span className="text-xs text-[#57534E] font-mono tabular-nums">
+                  {filteredProperties.length}{' '}
+                  {filteredProperties.length === 1 ? 'propiedad' : 'propiedades'}
+                </span>
+                <select
+                  aria-label="Ordenar propiedades"
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as SortOption)}
+                  className="px-3 py-2 text-xs bg-white border border-[#E2DFD9] text-[#161513] focus:outline-none focus:border-[#1B4332]"
+                >
+                  <option value="featured">Orden editorial</option>
+                  <option value="price-asc">Menor precio</option>
+                  <option value="price-desc">Mayor precio</option>
+                  <option value="area-desc">Mayor terreno</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Grid or Empty State */}
+            {filteredProperties.length > 0 ? (
+              <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredProperties.map((property) => (
+                  <PropertyCard
+                    key={property.id}
+                    property={property}
+                    isSaved={savedIds.includes(property.id)}
+                    onToggleSave={toggleSave}
+                    onSelect={setSelectedProperty}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="mt-8 bg-white border border-[#E2DFD9] p-12 text-center space-y-4">
+                <p className="font-editorial text-2xl text-[#161513]">
+                  No encontramos propiedades con esos criterios.
+                </p>
+                <p className="text-sm text-[#57534E] max-w-md mx-auto">
+                  Ajusta los filtros de plaza u operación, o contáctanos para una búsqueda privada
+                  fuera de catálogo.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleResetFilters}
+                  className="px-4 py-2 bg-[#1B4332] text-white text-xs font-semibold hover:bg-[#143326] transition-colors cursor-pointer"
+                >
+                  Restablecer filtros
+                </button>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Section 5: Contacto */}
+        <section
+          id="contacto"
+          className="py-14 sm:py-20 lg:py-28 bg-[#161513] text-[#F9F8F6] border-t border-[#292524]"
+        >
+          <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
+              {/* Left: Headquarters & Direct Channels */}
+              <div className="lg:col-span-5 space-y-8 min-w-0">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.22em] text-[#D4B475]">
+                    Contacto · Atención Personalizada
+                  </p>
+                  <h2 className="mt-3 text-3xl lg:text-4xl font-medium tracking-tight text-white [text-wrap:balance]">
+                    Conversa con una socia asesora sin costo inicial
+                  </h2>
+                  <p className="mt-4 text-[15px] leading-relaxed text-[#D6D3D1]">
+                    Ya sea que busques adquirir patrimonio, comercializar una propiedad o evaluar
+                    tierra para desarrollo, asignamos a una especialista según tu plaza y objetivo.
+                  </p>
+                </div>
+
+                <div className="space-y-4 pt-6 border-t border-white/15 text-sm">
+                  <div className="flex items-start gap-3">
+                    <MapPin className="w-4 h-4 text-[#D4B475] mt-1 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="font-medium text-white">Oficina Matriz Querétaro</p>
+                      <p className="text-[#A8A29E]">
+                        Av. Corregidora Nte. 1116, Piso 9, Arboledas, Santiago de Querétaro, Qro.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Phone className="w-4 h-4 text-[#D4B475] shrink-0" />
+                    <a
+                      href="tel:+524422759370"
+                      className="font-mono text-white hover:text-[#D4B475] transition-colors tabular-nums"
+                    >
+                      +52 (442) 275-9370
+                    </a>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Mail className="w-4 h-4 text-[#D4B475] shrink-0" />
+                    <a
+                      href="mailto:contacto@mujerinmobiliariayasociadas.com"
+                      className="text-white hover:text-[#D4B475] transition-colors break-all"
+                    >
+                      contacto@mujerinmobiliariayasociadas.com
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right: Validated Advisory Request Form */}
+              <div className="lg:col-span-7 bg-[#1F1D1A] border border-white/15 p-5 sm:p-8 min-w-0">
+                {contactSubmitted ? (
+                  <div className="py-10 space-y-4">
+                    <div className="w-10 h-10 bg-[#1B4332] text-white inline-flex items-center justify-center">
+                      <Check className="w-5 h-5" />
+                    </div>
+                    <h3 className="text-2xl font-medium text-white">
+                      Solicitud recibida correctamente
+                    </h3>
+                    <p className="text-sm text-[#D6D3D1] leading-relaxed max-w-lg">
+                      Gracias, <span className="text-white font-medium">{contactName}</span>. Una
+                      socia especialista en{' '}
+                      <span className="text-white font-medium">{contactIntent.toLowerCase()}</span>{' '}
+                      te contactará en menos de 24 horas hábiles al teléfono{' '}
+                      <span className="font-mono text-white">{contactPhone}</span>.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setContactSubmitted(false);
+                        setContactName('');
+                        setContactEmail('');
+                        setContactPhone('');
+                        setContactNotes('');
+                      }}
+                      className="px-4 py-2 border border-white/25 text-xs font-medium text-white hover:bg-white/10 transition-colors cursor-pointer"
+                    >
+                      Enviar otra consulta
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleContactSubmit} className="space-y-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label
+                          htmlFor="contact-name"
+                          className="block text-xs text-[#D6D3D1] mb-1.5"
+                        >
+                          Nombre completo
+                        </label>
+                        <input
+                          id="contact-name"
+                          type="text"
+                          value={contactName}
+                          onChange={(e) => setContactName(e.target.value)}
+                          placeholder="Tu nombre y apellido"
+                          className="w-full px-3.5 py-2.5 text-sm bg-[#161513] border border-white/20 text-white placeholder:text-[#78716C] focus:outline-none focus:border-[#D4B475]"
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="contact-phone"
+                          className="block text-xs text-[#D6D3D1] mb-1.5"
+                        >
+                          Teléfono / WhatsApp
+                        </label>
+                        <input
+                          id="contact-phone"
+                          type="tel"
+                          value={contactPhone}
+                          onChange={(e) => setContactPhone(e.target.value)}
+                          placeholder="+52 442 000 0000"
+                          className="w-full px-3.5 py-2.5 text-sm bg-[#161513] border border-white/20 text-white placeholder:text-[#78716C] focus:outline-none focus:border-[#D4B475]"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label
+                          htmlFor="contact-email"
+                          className="block text-xs text-[#D6D3D1] mb-1.5"
+                        >
+                          Correo electrónico
+                        </label>
+                        <input
+                          id="contact-email"
+                          type="email"
+                          value={contactEmail}
+                          onChange={(e) => setContactEmail(e.target.value)}
+                          placeholder="nombre@correo.com"
+                          className="w-full px-3.5 py-2.5 text-sm bg-[#161513] border border-white/20 text-white placeholder:text-[#78716C] focus:outline-none focus:border-[#D4B475]"
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="contact-intent"
+                          className="block text-xs text-[#D6D3D1] mb-1.5"
+                        >
+                          Objetivo de asesoría
+                        </label>
+                        <select
+                          id="contact-intent"
+                          value={contactIntent}
+                          onChange={(e) => setContactIntent(e.target.value)}
+                          className="w-full px-3.5 py-2.5 text-sm bg-[#161513] border border-white/20 text-white focus:outline-none focus:border-[#D4B475]"
+                        >
+                          <option value="Comprar propiedad">Comprar propiedad</option>
+                          <option value="Vender mi inmueble">Vender mi inmueble</option>
+                          <option value="Rentar residencia o espacio">
+                            Rentar residencia o espacio
+                          </option>
+                          <option value="Inversión en terrenos y desarrollos">
+                            Inversión en terrenos y desarrollos
+                          </option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="contact-notes"
+                        className="block text-xs text-[#D6D3D1] mb-1.5"
+                      >
+                        Plaza de interés o detalles del inmueble
+                      </label>
+                      <textarea
+                        id="contact-notes"
+                        rows={3}
+                        value={contactNotes}
+                        onChange={(e) => setContactNotes(e.target.value)}
+                        placeholder="Cuéntanos la zona, presupuesto aproximado o características de la propiedad..."
+                        className="w-full px-3.5 py-2.5 text-sm bg-[#161513] border border-white/20 text-white placeholder:text-[#78716C] focus:outline-none focus:border-[#D4B475]"
+                      />
+                    </div>
+
+                    {contactError && <p className="text-xs text-[#FCA5A5]">{contactError}</p>}
+
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1">
+                      <span className="text-[11px] text-[#A8A29E]">
+                        Asesoría confidencial · Sin compromiso de exclusividad previa.
+                      </span>
+                      <button
+                        type="submit"
+                        className="px-6 py-3 bg-[#1B4332] text-white text-xs font-semibold hover:bg-[#235640] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                      >
+                        Solicitar asesoría gratuita
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {/* Quiet Editorial Footer */}
+      <footer className="bg-[#F9F8F6] border-t border-[#E2DFD9] py-10">
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="flex items-center gap-3">
+            <BrandMark className="w-6 h-6 shrink-0" strokeColor="#161513" accentColor="#9A7B3E" />
+            <div>
+              <p className="font-editorial text-lg font-semibold text-[#161513] leading-none">
+                Mujer Inmobiliaria &amp; Asociadas
+              </p>
+              <p className="mt-1 text-xs text-[#57534E]">
+                Querétaro · Yucatán · Estado de México
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-6 text-xs text-[#57534E]">
+            <a href="#inicio" className="hover:text-[#161513] transition-colors">
+              Inicio
+            </a>
+            <a href="#nosotras" className="hover:text-[#161513] transition-colors">
+              Nosotras
+            </a>
+            <a href="#servicios" className="hover:text-[#161513] transition-colors">
+              Servicios
+            </a>
+            <a href="#inmuebles" className="hover:text-[#161513] transition-colors">
+              Inmuebles
+            </a>
+            <a href="#contacto" className="hover:text-[#161513] transition-colors">
+              Contacto
+            </a>
+          </div>
+
+          <p className="text-xs text-[#57534E]">
+            © 2026 Mujer Inmobiliaria &amp; Asociadas. Todos los derechos reservados.
+          </p>
+        </div>
+      </footer>
+
+      {/* Property Technical Dossier Modal */}
+      <PropertyModal
+        property={selectedProperty}
+        onClose={() => setSelectedProperty(null)}
+      />
+    </div>
+  );
+}
