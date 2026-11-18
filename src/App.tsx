@@ -23,9 +23,12 @@ import {
   SERVICES_LIST,
   VALORES_LIST,
 } from './data/properties';
-import { BrandMark } from './components/BrandLogo';
+import { BrandLogo } from './components/BrandLogo';
 import { PropertyCard } from './components/PropertyCard';
 import { PropertyModal } from './components/PropertyModal';
+import { PWAInstallButton } from './components/PWAInstallButton';
+import { OfflineIndicator } from './components/OfflineIndicator';
+import { SplashScreen } from './components/SplashScreen';
 
 type OperationFilter = 'Todas' | OperationType;
 type RegionFilter = 'Todas' | RegionState;
@@ -183,33 +186,30 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F9F8F6] text-[#161513] overflow-x-clip">
+    <div className="min-h-screen flex flex-col bg-white text-[#161513] overflow-x-clip">
+      <SplashScreen />
+      <OfflineIndicator />
+
       {/* Strict 3-Zone Top Bar */}
-      <header className="sticky top-0 z-40 bg-[#F9F8F6]/95 backdrop-blur-xs border-b border-[#E2DFD9]">
-        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 h-16 flex items-center justify-between gap-3 md:gap-8">
-          {/* Zone 1: Single-line Brand Wordmark + Custom Monogram */}
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-xs border-b border-[#E6E2E8]">
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 h-16 sm:h-[72px] flex items-center justify-between gap-3 md:gap-8">
+          {/* Zone 1: Brand Logo */}
           <a
             href="#inicio"
-            className="inline-flex items-center gap-2 sm:gap-3 min-w-0 whitespace-nowrap md:shrink-0 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#1B4332]"
+            aria-label="Mujer Inmobiliaria & Asociadas — Inicio"
+            className="inline-flex items-center min-w-0 shrink-0 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#892B84]"
           >
-            <BrandMark
-              className="w-6 h-6 sm:w-7 sm:h-7 shrink-0"
-              strokeColor="#161513"
-              accentColor="#9A7B3E"
-            />
-            <span className="font-editorial text-[17px] sm:text-xl lg:text-[22px] font-semibold tracking-tight text-[#161513] truncate">
-              Mujer Inmobiliaria &amp; Asociadas
-            </span>
+            <BrandLogo className="h-10 sm:h-12 w-auto" />
           </a>
 
-          {/* Zone 2: 5 Nav Items matching Inicio, Nosotras (dropdown), Servicios, Inmuebles, Contacto */}
+          {/* Zone 2: 5 Nav Items: Inicio, Nosotras (dropdown), Servicios, Inmuebles, Contacto */}
           <nav
             aria-label="Navegación principal"
             className="hidden md:flex items-center gap-6 lg:gap-7 text-sm font-medium text-[#57534E]"
           >
             <a
               href="#inicio"
-              className="hover:text-[#161513] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
+              className="hover:text-[#892B84] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
             >
               Inicio
             </a>
@@ -221,8 +221,8 @@ export default function App() {
                 aria-expanded={nosotrasDropdownOpen}
                 aria-haspopup="menu"
                 onClick={() => setNosotrasDropdownOpen((prev) => !prev)}
-                className={`inline-flex items-center gap-1 hover:text-[#161513] transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                  nosotrasDropdownOpen ? 'text-[#161513] underline underline-offset-4' : ''
+                className={`inline-flex items-center gap-1 hover:text-[#892B84] transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                  nosotrasDropdownOpen ? 'text-[#892B84] underline underline-offset-4' : ''
                 }`}
               >
                 <span>Nosotras</span>
@@ -237,7 +237,7 @@ export default function App() {
                 <div
                   role="menu"
                   aria-label="Subsecciones de Nosotras"
-                  className="absolute left-0 top-full mt-3 w-48 bg-white border border-[#E2DFD9] shadow-lg py-1.5 z-50"
+                  className="absolute left-0 top-full mt-3 w-48 bg-white border border-[#E6E2E8] shadow-lg py-1.5 z-50"
                 >
                   {NOSOTRAS_SUBITEMS.map((item) => (
                     <button
@@ -247,13 +247,13 @@ export default function App() {
                       onClick={() => handleSelectNosotrasSubitem(item.id)}
                       className={`w-full text-left px-4 py-2.5 text-sm transition-colors cursor-pointer flex items-center justify-between ${
                         activeNosotrasTab === item.id
-                          ? 'bg-[#F3F1EC] text-[#1B4332] font-semibold'
-                          : 'text-[#161513] hover:bg-[#F9F8F6]'
+                          ? 'bg-[#F9F5F9] text-[#892B84] font-semibold'
+                          : 'text-[#161513] hover:bg-[#F9F8FA]'
                       }`}
                     >
                       <span>{item.label}</span>
                       {activeNosotrasTab === item.id && (
-                        <span className="text-[10px] font-mono text-[#9A7B3E]">·</span>
+                        <span className="text-[10px] font-mono text-[#892B84]">·</span>
                       )}
                     </button>
                   ))}
@@ -263,19 +263,19 @@ export default function App() {
 
             <a
               href="#servicios"
-              className="hover:text-[#161513] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
+              className="hover:text-[#892B84] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
             >
               Servicios
             </a>
             <a
               href="#inmuebles"
-              className="hover:text-[#161513] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
+              className="hover:text-[#892B84] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
             >
               Inmuebles
             </a>
             <a
               href="#contacto"
-              className="hover:text-[#161513] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
+              className="hover:text-[#892B84] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
             >
               Contacto
             </a>
@@ -286,7 +286,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => scrollToSection('contacto')}
-              className="hidden sm:inline-flex items-center px-4 py-2 bg-[#1B4332] text-white text-xs font-semibold hover:bg-[#143326] transition-colors whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1B4332]"
+              className="hidden sm:inline-flex items-center px-4 py-2 bg-[#892B84] text-white text-xs font-semibold hover:bg-[#6E206A] transition-colors whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#892B84]"
             >
               Agendar Asesoría
             </button>
@@ -295,7 +295,7 @@ export default function App() {
               onClick={() => setMobileMenuOpen((prev) => !prev)}
               aria-expanded={mobileMenuOpen}
               aria-label={mobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
-              className="md:hidden w-10 h-10 inline-flex items-center justify-center border border-[#E2DFD9] bg-white text-[#161513] cursor-pointer"
+              className="md:hidden w-10 h-10 inline-flex items-center justify-center border border-[#E6E2E8] bg-white text-[#161513] hover:border-[#892B84] hover:text-[#892B84] cursor-pointer"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -304,18 +304,18 @@ export default function App() {
 
         {/* Mobile Drawer */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-[#E2DFD9] bg-[#F9F8F6] px-4 sm:px-6 py-4 space-y-3">
+          <div className="md:hidden border-t border-[#E6E2E8] bg-white px-4 sm:px-6 py-4 space-y-3">
             <div className="flex flex-col space-y-1 text-sm font-medium text-[#161513]">
               <a
                 href="#inicio"
                 onClick={() => setMobileMenuOpen(false)}
-                className="py-2 border-b border-[#E2DFD9]/60"
+                className="py-2 border-b border-[#E6E2E8]/70"
               >
                 Inicio
               </a>
 
               {/* Mobile Nosotras Accordion */}
-              <div className="border-b border-[#E2DFD9]/60 py-1">
+              <div className="border-b border-[#E6E2E8]/70 py-1">
                 <button
                   type="button"
                   onClick={() => setMobileNosotrasOpen((prev) => !prev)}
@@ -337,7 +337,7 @@ export default function App() {
                         onClick={() => handleSelectNosotrasSubitem(item.id)}
                         className={`text-left py-1 cursor-pointer ${
                           activeNosotrasTab === item.id
-                            ? 'text-[#1B4332] font-semibold'
+                            ? 'text-[#892B84] font-semibold'
                             : 'hover:text-[#161513]'
                         }`}
                       >
@@ -351,14 +351,14 @@ export default function App() {
               <a
                 href="#servicios"
                 onClick={() => setMobileMenuOpen(false)}
-                className="py-2 border-b border-[#E2DFD9]/60"
+                className="py-2 border-b border-[#E6E2E8]/70"
               >
                 Servicios
               </a>
               <a
                 href="#inmuebles"
                 onClick={() => setMobileMenuOpen(false)}
-                className="py-2 border-b border-[#E2DFD9]/60"
+                className="py-2 border-b border-[#E6E2E8]/70"
               >
                 Inmuebles
               </a>
@@ -370,26 +370,29 @@ export default function App() {
                 Contacto
               </a>
             </div>
-            <button
-              type="button"
-              onClick={() => scrollToSection('contacto')}
-              className="w-full py-2.5 px-4 bg-[#1B4332] text-white text-xs font-semibold cursor-pointer"
-            >
-              Agendar Asesoría
-            </button>
+            <div className="space-y-2 pt-1">
+              <button
+                type="button"
+                onClick={() => scrollToSection('contacto')}
+                className="w-full py-2.5 px-4 bg-[#892B84] text-white text-xs font-semibold hover:bg-[#6E206A] transition-colors cursor-pointer"
+              >
+                Agendar Asesoría
+              </button>
+              <PWAInstallButton variant="drawer" />
+            </div>
           </div>
         )}
       </header>
 
-      <main className="flex-1">
+      <main className="flex-1 bg-white">
         {/* Section 1: Inicio (Hero Split + Quick Finder) */}
-        <section id="inicio" className="border-b border-[#E2DFD9]">
+        <section id="inicio" className="bg-white border-b border-[#E6E2E8]">
           <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 py-10 sm:py-14 lg:py-20">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-10 lg:gap-12 items-stretch">
               {/* Left Narrative & Live Search */}
               <div className="lg:col-span-6 flex flex-col justify-between gap-7 sm:gap-8 min-w-0">
                 <div>
-                  <p className="text-[11px] sm:text-xs uppercase tracking-[0.16em] sm:tracking-[0.22em] text-[#57534E]">
+                  <p className="text-[11px] sm:text-xs uppercase tracking-[0.16em] sm:tracking-[0.22em] text-[#892B84] font-semibold">
                     Santiago de Querétaro · Yucatán · Estado de México
                   </p>
                   <h1 className="mt-3 sm:mt-4 text-[clamp(2.05rem,4.3vw,3.85rem)] font-medium tracking-tight text-[#161513] leading-[1.08] [text-wrap:balance]">
@@ -405,7 +408,7 @@ export default function App() {
                 {/* Integrated Property Finder */}
                 <form
                   onSubmit={handleHeroSearch}
-                  className="bg-white border border-[#E2DFD9] p-5 space-y-4"
+                  className="bg-white border border-[#E6E2E8] p-5 space-y-4"
                 >
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
@@ -419,7 +422,7 @@ export default function App() {
                         id="hero-op"
                         value={heroOp}
                         onChange={(e) => setHeroOp(e.target.value as OperationFilter)}
-                        className="w-full px-3 py-2.5 text-sm bg-[#F9F8F6] border border-[#E2DFD9] text-[#161513] focus:outline-none focus:border-[#1B4332]"
+                        className="w-full px-3 py-2.5 text-sm bg-[#F9F8FA] border border-[#E6E2E8] text-[#161513] focus:outline-none focus:border-[#892B84]"
                       >
                         <option value="Todas">Todas las operaciones</option>
                         <option value="Venta">Venta residencial</option>
@@ -438,7 +441,7 @@ export default function App() {
                         id="hero-region"
                         value={heroRegion}
                         onChange={(e) => setHeroRegion(e.target.value as RegionFilter)}
-                        className="w-full px-3 py-2.5 text-sm bg-[#F9F8F6] border border-[#E2DFD9] text-[#161513] focus:outline-none focus:border-[#1B4332]"
+                        className="w-full px-3 py-2.5 text-sm bg-[#F9F8FA] border border-[#E6E2E8] text-[#161513] focus:outline-none focus:border-[#892B84]"
                       >
                         <option value="Todas">Querétaro, Yucatán y Edo. Méx.</option>
                         <option value="Querétaro">Querétaro</option>
@@ -447,10 +450,10 @@ export default function App() {
                       </select>
                     </div>
                   </div>
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
+                  <div className="flex flex-wrap items-center gap-3 pt-1">
                     <button
                       type="submit"
-                      className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-[#1B4332] text-white text-xs font-semibold hover:bg-[#143326] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-3 bg-[#892B84] text-white text-xs font-semibold hover:bg-[#6E206A] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
                     >
                       <span>Explorar inmuebles</span>
                       <ArrowRight className="w-4 h-4" />
@@ -458,17 +461,18 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => scrollToSection('servicios')}
-                      className="inline-flex items-center justify-center px-4 py-3 border border-[#E2DFD9] text-xs font-medium text-[#161513] hover:border-[#161513] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                      className="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-3 border border-[#E6E2E8] text-xs font-medium text-[#161513] hover:border-[#892B84] hover:text-[#892B84] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
                     >
                       Conocer servicios
                     </button>
+                    <PWAInstallButton />
                   </div>
                 </form>
               </div>
 
               {/* Right Focal Visual */}
               <div className="lg:col-span-6 flex flex-col min-w-0">
-                <div className="relative flex-1 min-h-[260px] sm:min-h-[360px] lg:min-h-[460px] bg-[#EFECE7] border border-[#E2DFD9] overflow-hidden">
+                <div className="relative flex-1 min-h-[260px] sm:min-h-[360px] lg:min-h-[460px] bg-[#F9F8FA] border border-[#E6E2E8] overflow-hidden">
                   {!heroImgError ? (
                     <img
                       src={HERO_IMAGE}
@@ -478,7 +482,7 @@ export default function App() {
                       className="w-full h-full lg:h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-[#57534E] bg-gradient-to-br from-[#EFECE7] to-[#E2DFD9] p-8">
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-[#57534E] bg-gradient-to-br from-[#F9F8FA] to-[#E6E2E8] p-8">
                       <Building2 className="w-10 h-10" />
                       <span className="font-editorial text-2xl text-[#161513]">
                         Mujer Inmobiliaria &amp; Asociadas
@@ -498,9 +502,9 @@ export default function App() {
             </div>
 
             {/* Full-Width 4-Column Capabilities Strip */}
-            <div className="mt-12 pt-8 border-t border-[#E2DFD9] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="mt-12 pt-8 border-t border-[#E6E2E8] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               <div>
-                <p className="font-mono text-xs text-[#9A7B3E] tabular-nums">01</p>
+                <p className="font-mono text-xs text-[#892B84] font-semibold tabular-nums">01</p>
                 <h2 className="mt-1 font-sans text-sm font-semibold text-[#161513]">
                   Asesoría inicial sin costo
                 </h2>
@@ -510,7 +514,7 @@ export default function App() {
                 </p>
               </div>
               <div>
-                <p className="font-mono text-xs text-[#9A7B3E] tabular-nums">02</p>
+                <p className="font-mono text-xs text-[#892B84] font-semibold tabular-nums">02</p>
                 <h2 className="mt-1 font-sans text-sm font-semibold text-[#161513]">
                   Valuación comercial real
                 </h2>
@@ -519,7 +523,7 @@ export default function App() {
                 </p>
               </div>
               <div>
-                <p className="font-mono text-xs text-[#9A7B3E] tabular-nums">03</p>
+                <p className="font-mono text-xs text-[#892B84] font-semibold tabular-nums">03</p>
                 <h2 className="mt-1 font-sans text-sm font-semibold text-[#161513]">
                   Dictamen legal y fiscal
                 </h2>
@@ -528,7 +532,7 @@ export default function App() {
                 </p>
               </div>
               <div>
-                <p className="font-mono text-xs text-[#9A7B3E] tabular-nums">04</p>
+                <p className="font-mono text-xs text-[#892B84] font-semibold tabular-nums">04</p>
                 <h2 className="mt-1 font-sans text-sm font-semibold text-[#161513]">
                   Red de asesoras en 3 plazas
                 </h2>
@@ -541,11 +545,11 @@ export default function App() {
         </section>
 
         {/* Section 2: Nosotras (Misión, Visión, Valores, Alianzas) */}
-        <section id="nosotras" className="py-14 sm:py-20 lg:py-24 bg-[#F3F1EC]">
+        <section id="nosotras" className="py-14 sm:py-20 lg:py-24 bg-[#F9F8FA]">
           <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10">
-            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-8 border-b border-[#E2DFD9]">
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-8 border-b border-[#E6E2E8]">
               <div className="max-w-2xl">
-                <p className="text-xs uppercase tracking-[0.22em] text-[#57534E]">
+                <p className="text-xs uppercase tracking-[0.22em] text-[#892B84] font-semibold">
                   Nosotras · Identidad Institucional
                 </p>
                 <h2 className="mt-2 text-3xl lg:text-4xl font-medium tracking-tight text-[#161513] [text-wrap:balance]">
@@ -557,7 +561,7 @@ export default function App() {
               <div
                 role="tablist"
                 aria-label="Pilares institucionales de Nosotras"
-                className="inline-flex flex-wrap items-center gap-1 p-1 bg-white border border-[#E2DFD9] self-start lg:self-auto max-w-full"
+                className="inline-flex flex-wrap items-center gap-1 p-1 bg-white border border-[#E6E2E8] self-start lg:self-auto max-w-full"
               >
                 {NOSOTRAS_PILLARS.map((pillar) => (
                   <button
@@ -568,8 +572,8 @@ export default function App() {
                     onClick={() => setActiveNosotrasTab(pillar.id)}
                     className={`px-3.5 py-2 text-xs font-medium transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                       activeNosotrasTab === pillar.id
-                        ? 'bg-[#1B4332] text-white'
-                        : 'text-[#57534E] hover:text-[#161513]'
+                        ? 'bg-[#892B84] text-white'
+                        : 'text-[#57534E] hover:text-[#892B84]'
                     }`}
                   >
                     {pillar.label}
@@ -579,10 +583,10 @@ export default function App() {
             </div>
 
             {/* Active Pillar Spotlight */}
-            <div className="mt-8 bg-white border border-[#E2DFD9] p-6 sm:p-10">
+            <div className="mt-8 bg-white border border-[#E6E2E8] p-6 sm:p-10">
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
                 <div className="lg:col-span-6 space-y-4 min-w-0">
-                  <p className="font-mono text-xs uppercase tracking-[0.18em] text-[#9A7B3E]">
+                  <p className="font-mono text-xs uppercase tracking-[0.18em] text-[#892B84] font-semibold">
                     {activeNosotrasPillar.kicker}
                   </p>
                   <h3 className="text-2xl sm:text-3xl font-medium tracking-tight text-[#161513] leading-snug">
@@ -599,9 +603,9 @@ export default function App() {
                       {VALORES_LIST.map((valor) => (
                         <div
                           key={valor.number}
-                          className="p-4 bg-[#F9F8F6] border border-[#E2DFD9]"
+                          className="p-4 bg-[#F9F8FA] border border-[#E6E2E8]"
                         >
-                          <p className="font-mono text-[11px] text-[#9A7B3E] tabular-nums">
+                          <p className="font-mono text-[11px] text-[#892B84] font-semibold tabular-nums">
                             {valor.number}
                           </p>
                           <p className="mt-1 font-sans text-sm font-semibold text-[#161513]">
@@ -614,10 +618,10 @@ export default function App() {
                       ))}
                     </div>
                   ) : (
-                    <div className="border-t border-[#E2DFD9] divide-y divide-[#E2DFD9]">
+                    <div className="border-t border-[#E6E2E8] divide-y divide-[#E6E2E8]">
                       {activeNosotrasPillar.highlights.map((item, idx) => (
                         <div key={item} className="py-4 flex items-start gap-3.5">
-                          <span className="font-mono text-xs text-[#9A7B3E] mt-0.5 tabular-nums">
+                          <span className="font-mono text-xs text-[#892B84] font-semibold mt-0.5 tabular-nums">
                             0{idx + 1}
                           </span>
                           <p className="text-sm leading-relaxed text-[#161513]">{item}</p>
@@ -641,20 +645,20 @@ export default function App() {
                     onClick={() => setActiveNosotrasTab(pillar.id)}
                     className={`text-left p-5 border transition-colors cursor-pointer ${
                       isActive
-                        ? 'bg-[#161513] text-white border-[#161513]'
-                        : 'bg-white text-[#161513] border-[#E2DFD9] hover:border-[#161513]/40'
+                        ? 'bg-[#892B84] text-white border-[#892B84]'
+                        : 'bg-white text-[#161513] border-[#E6E2E8] hover:border-[#892B84]/50'
                     }`}
                   >
                     <p
-                      className={`font-mono text-[11px] uppercase tracking-[0.16em] ${
-                        isActive ? 'text-[#D4B475]' : 'text-[#9A7B3E]'
+                      className={`font-mono text-[11px] uppercase tracking-[0.16em] font-semibold ${
+                        isActive ? 'text-white/85' : 'text-[#892B84]'
                       }`}
                     >
                       {pillar.label}
                     </p>
                     <p
                       className={`mt-2 text-xs leading-relaxed line-clamp-3 ${
-                        isActive ? 'text-[#D6D3D1]' : 'text-[#57534E]'
+                        isActive ? 'text-white/90' : 'text-[#57534E]'
                       }`}
                     >
                       {pillar.body}
@@ -667,11 +671,11 @@ export default function App() {
         </section>
 
         {/* Section 3: Servicios */}
-        <section id="servicios" className="py-14 sm:py-20 lg:py-24 border-t border-[#E2DFD9]">
+        <section id="servicios" className="py-14 sm:py-20 lg:py-24 bg-white border-t border-[#E6E2E8]">
           <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10">
-            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-8 border-b border-[#E2DFD9]">
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-8 border-b border-[#E6E2E8]">
               <div className="max-w-2xl">
-                <p className="text-xs uppercase tracking-[0.22em] text-[#57534E]">
+                <p className="text-xs uppercase tracking-[0.22em] text-[#892B84] font-semibold">
                   Servicios Especializados
                 </p>
                 <h2 className="mt-2 text-3xl lg:text-4xl font-medium tracking-tight text-[#161513] [text-wrap:balance]">
@@ -688,10 +692,10 @@ export default function App() {
               {SERVICES_LIST.map((service) => (
                 <div
                   key={service.number}
-                  className="bg-white border border-[#E2DFD9] p-6 sm:p-8 flex flex-col justify-between gap-6"
+                  className="bg-white border border-[#E6E2E8] p-6 sm:p-8 flex flex-col justify-between gap-6 hover:border-[#892B84]/45 transition-colors"
                 >
                   <div>
-                    <p className="font-mono text-xs text-[#9A7B3E] tabular-nums">
+                    <p className="font-mono text-xs text-[#892B84] font-semibold tabular-nums">
                       {service.number}
                     </p>
                     <h3 className="mt-2 text-2xl font-medium tracking-tight text-[#161513]">
@@ -700,10 +704,10 @@ export default function App() {
                     <p className="mt-3 text-sm leading-relaxed text-[#57534E]">
                       {service.summary}
                     </p>
-                    <ul className="mt-5 pt-4 border-t border-[#E2DFD9] space-y-2">
+                    <ul className="mt-5 pt-4 border-t border-[#E6E2E8] space-y-2">
                       {service.deliverables.map((del) => (
                         <li key={del} className="text-xs text-[#44403C] flex items-start gap-2">
-                          <span className="text-[#9A7B3E]" aria-hidden="true">
+                          <span className="text-[#892B84]" aria-hidden="true">
                             —
                           </span>
                           <span>{del}</span>
@@ -716,7 +720,7 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => handleServiceSelect(service.contactIntent)}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1B4332] hover:underline cursor-pointer"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#892B84] hover:text-[#6E206A] hover:underline cursor-pointer"
                     >
                       <span>Solicitar este servicio</span>
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -729,11 +733,11 @@ export default function App() {
         </section>
 
         {/* Section 4: Inmuebles (Curated Property Portfolio) */}
-        <section id="inmuebles" className="py-14 sm:py-20 lg:py-24 bg-[#F3F1EC] border-t border-[#E2DFD9]">
+        <section id="inmuebles" className="py-14 sm:py-20 lg:py-24 bg-[#F9F8FA] border-t border-[#E6E2E8]">
           <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10">
-            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-8 border-b border-[#E2DFD9]">
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-8 border-b border-[#E6E2E8]">
               <div>
-                <p className="text-xs uppercase tracking-[0.22em] text-[#57534E]">
+                <p className="text-xs uppercase tracking-[0.22em] text-[#892B84] font-semibold">
                   Inmuebles · Portafolio Verificado
                 </p>
                 <h2 className="mt-2 text-3xl lg:text-4xl font-medium tracking-tight text-[#161513]">
@@ -745,7 +749,7 @@ export default function App() {
               <div
                 role="tablist"
                 aria-label="Filtrar por tipo de operación"
-                className="inline-flex flex-wrap items-center gap-1 p-1 bg-white border border-[#E2DFD9] self-start lg:self-auto max-w-full"
+                className="inline-flex flex-wrap items-center gap-1 p-1 bg-white border border-[#E6E2E8] self-start lg:self-auto max-w-full"
               >
                 {(['Todas', 'Venta', 'Renta', 'Terreno'] as OperationFilter[]).map((op) => (
                   <button
@@ -756,8 +760,8 @@ export default function App() {
                     onClick={() => setOperationFilter(op)}
                     className={`px-3 sm:px-3.5 py-2 text-xs font-medium transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                       operationFilter === op
-                        ? 'bg-[#1B4332] text-white'
-                        : 'text-[#57534E] hover:text-[#161513]'
+                        ? 'bg-[#892B84] text-white'
+                        : 'text-[#57534E] hover:text-[#892B84]'
                     }`}
                   >
                     {op === 'Terreno' ? 'Terrenos' : op}
@@ -767,7 +771,7 @@ export default function App() {
             </div>
 
             {/* Filter Utility Bar */}
-            <div className="py-5 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#E2DFD9]">
+            <div className="py-5 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#E6E2E8]">
               <div className="flex flex-wrap items-center gap-3 flex-1 min-w-0">
                 <div className="relative w-full sm:flex-1 sm:min-w-[200px] sm:max-w-sm">
                   <Search className="w-4 h-4 text-[#57534E] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -777,7 +781,7 @@ export default function App() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Buscar por zona, nombre o folio..."
                     aria-label="Buscar propiedades"
-                    className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-[#E2DFD9] text-[#161513] focus:outline-none focus:border-[#1B4332]"
+                    className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-[#E6E2E8] text-[#161513] focus:outline-none focus:border-[#892B84]"
                   />
                 </div>
 
@@ -785,7 +789,7 @@ export default function App() {
                   aria-label="Filtrar por estado"
                   value={regionFilter}
                   onChange={(e) => setRegionFilter(e.target.value as RegionFilter)}
-                  className="flex-1 sm:flex-none px-3 py-2 text-xs bg-white border border-[#E2DFD9] text-[#161513] focus:outline-none focus:border-[#1B4332]"
+                  className="flex-1 sm:flex-none px-3 py-2 text-xs bg-white border border-[#E6E2E8] text-[#161513] focus:outline-none focus:border-[#892B84]"
                 >
                   <option value="Todas">Todas las plazas</option>
                   <option value="Querétaro">Querétaro</option>
@@ -799,8 +803,8 @@ export default function App() {
                   aria-pressed={onlySaved}
                   className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium border transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                     onlySaved
-                      ? 'bg-[#1B4332] text-white border-[#1B4332]'
-                      : 'bg-white text-[#161513] border-[#E2DFD9] hover:border-[#161513]'
+                      ? 'bg-[#892B84] text-white border-[#892B84]'
+                      : 'bg-white text-[#161513] border-[#E6E2E8] hover:border-[#892B84] hover:text-[#892B84]'
                   }`}
                 >
                   <Bookmark className={`w-3.5 h-3.5 ${onlySaved ? 'fill-current' : ''}`} />
@@ -817,7 +821,7 @@ export default function App() {
                   aria-label="Ordenar propiedades"
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as SortOption)}
-                  className="px-3 py-2 text-xs bg-white border border-[#E2DFD9] text-[#161513] focus:outline-none focus:border-[#1B4332]"
+                  className="px-3 py-2 text-xs bg-white border border-[#E6E2E8] text-[#161513] focus:outline-none focus:border-[#892B84]"
                 >
                   <option value="featured">Orden editorial</option>
                   <option value="price-asc">Menor precio</option>
@@ -841,7 +845,7 @@ export default function App() {
                 ))}
               </div>
             ) : (
-              <div className="mt-8 bg-white border border-[#E2DFD9] p-12 text-center space-y-4">
+              <div className="mt-8 bg-white border border-[#E6E2E8] p-12 text-center space-y-4">
                 <p className="font-editorial text-2xl text-[#161513]">
                   No encontramos propiedades con esos criterios.
                 </p>
@@ -852,7 +856,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={handleResetFilters}
-                  className="px-4 py-2 bg-[#1B4332] text-white text-xs font-semibold hover:bg-[#143326] transition-colors cursor-pointer"
+                  className="px-4 py-2 bg-[#892B84] text-white text-xs font-semibold hover:bg-[#6E206A] transition-colors cursor-pointer"
                 >
                   Restablecer filtros
                 </button>
@@ -864,14 +868,14 @@ export default function App() {
         {/* Section 5: Contacto */}
         <section
           id="contacto"
-          className="py-14 sm:py-20 lg:py-28 bg-[#161513] text-[#F9F8F6] border-t border-[#292524]"
+          className="py-14 sm:py-20 lg:py-28 bg-[#161513] text-white border-t border-[#292524]"
         >
           <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
               {/* Left: Headquarters & Direct Channels */}
               <div className="lg:col-span-5 space-y-8 min-w-0">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.22em] text-[#D4B475]">
+                  <p className="text-xs uppercase tracking-[0.22em] text-[#D88FD4] font-semibold">
                     Contacto · Atención Personalizada
                   </p>
                   <h2 className="mt-3 text-3xl lg:text-4xl font-medium tracking-tight text-white [text-wrap:balance]">
@@ -885,7 +889,7 @@ export default function App() {
 
                 <div className="space-y-4 pt-6 border-t border-white/15 text-sm">
                   <div className="flex items-start gap-3">
-                    <MapPin className="w-4 h-4 text-[#D4B475] mt-1 shrink-0" />
+                    <MapPin className="w-4 h-4 text-[#D88FD4] mt-1 shrink-0" />
                     <div className="min-w-0">
                       <p className="font-medium text-white">Oficina Matriz Querétaro</p>
                       <p className="text-[#A8A29E]">
@@ -894,19 +898,19 @@ export default function App() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Phone className="w-4 h-4 text-[#D4B475] shrink-0" />
+                    <Phone className="w-4 h-4 text-[#D88FD4] shrink-0" />
                     <a
                       href="tel:+524422759370"
-                      className="font-mono text-white hover:text-[#D4B475] transition-colors tabular-nums"
+                      className="font-mono text-white hover:text-[#D88FD4] transition-colors tabular-nums"
                     >
                       +52 (442) 275-9370
                     </a>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Mail className="w-4 h-4 text-[#D4B475] shrink-0" />
+                    <Mail className="w-4 h-4 text-[#D88FD4] shrink-0" />
                     <a
                       href="mailto:contacto@mujerinmobiliariayasociadas.com"
-                      className="text-white hover:text-[#D4B475] transition-colors break-all"
+                      className="text-white hover:text-[#D88FD4] transition-colors break-all"
                     >
                       contacto@mujerinmobiliariayasociadas.com
                     </a>
@@ -918,7 +922,7 @@ export default function App() {
               <div className="lg:col-span-7 bg-[#1F1D1A] border border-white/15 p-5 sm:p-8 min-w-0">
                 {contactSubmitted ? (
                   <div className="py-10 space-y-4">
-                    <div className="w-10 h-10 bg-[#1B4332] text-white inline-flex items-center justify-center">
+                    <div className="w-10 h-10 bg-[#892B84] text-white inline-flex items-center justify-center">
                       <Check className="w-5 h-5" />
                     </div>
                     <h3 className="text-2xl font-medium text-white">
@@ -961,7 +965,7 @@ export default function App() {
                           value={contactName}
                           onChange={(e) => setContactName(e.target.value)}
                           placeholder="Tu nombre y apellido"
-                          className="w-full px-3.5 py-2.5 text-sm bg-[#161513] border border-white/20 text-white placeholder:text-[#78716C] focus:outline-none focus:border-[#D4B475]"
+                          className="w-full px-3.5 py-2.5 text-sm bg-[#161513] border border-white/20 text-white placeholder:text-[#78716C] focus:outline-none focus:border-[#D88FD4]"
                         />
                       </div>
                       <div>
@@ -977,7 +981,7 @@ export default function App() {
                           value={contactPhone}
                           onChange={(e) => setContactPhone(e.target.value)}
                           placeholder="+52 442 000 0000"
-                          className="w-full px-3.5 py-2.5 text-sm bg-[#161513] border border-white/20 text-white placeholder:text-[#78716C] focus:outline-none focus:border-[#D4B475]"
+                          className="w-full px-3.5 py-2.5 text-sm bg-[#161513] border border-white/20 text-white placeholder:text-[#78716C] focus:outline-none focus:border-[#D88FD4]"
                         />
                       </div>
                     </div>
@@ -996,7 +1000,7 @@ export default function App() {
                           value={contactEmail}
                           onChange={(e) => setContactEmail(e.target.value)}
                           placeholder="nombre@correo.com"
-                          className="w-full px-3.5 py-2.5 text-sm bg-[#161513] border border-white/20 text-white placeholder:text-[#78716C] focus:outline-none focus:border-[#D4B475]"
+                          className="w-full px-3.5 py-2.5 text-sm bg-[#161513] border border-white/20 text-white placeholder:text-[#78716C] focus:outline-none focus:border-[#D88FD4]"
                         />
                       </div>
                       <div>
@@ -1010,7 +1014,7 @@ export default function App() {
                           id="contact-intent"
                           value={contactIntent}
                           onChange={(e) => setContactIntent(e.target.value)}
-                          className="w-full px-3.5 py-2.5 text-sm bg-[#161513] border border-white/20 text-white focus:outline-none focus:border-[#D4B475]"
+                          className="w-full px-3.5 py-2.5 text-sm bg-[#161513] border border-white/20 text-white focus:outline-none focus:border-[#D88FD4]"
                         >
                           <option value="Comprar propiedad">Comprar propiedad</option>
                           <option value="Vender mi inmueble">Vender mi inmueble</option>
@@ -1037,7 +1041,7 @@ export default function App() {
                         value={contactNotes}
                         onChange={(e) => setContactNotes(e.target.value)}
                         placeholder="Cuéntanos la zona, presupuesto aproximado o características de la propiedad..."
-                        className="w-full px-3.5 py-2.5 text-sm bg-[#161513] border border-white/20 text-white placeholder:text-[#78716C] focus:outline-none focus:border-[#D4B475]"
+                        className="w-full px-3.5 py-2.5 text-sm bg-[#161513] border border-white/20 text-white placeholder:text-[#78716C] focus:outline-none focus:border-[#D88FD4]"
                       />
                     </div>
 
@@ -1049,7 +1053,7 @@ export default function App() {
                       </span>
                       <button
                         type="submit"
-                        className="px-6 py-3 bg-[#1B4332] text-white text-xs font-semibold hover:bg-[#235640] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                        className="px-6 py-3 bg-[#892B84] text-white text-xs font-semibold hover:bg-[#9E3599] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
                       >
                         Solicitar asesoría gratuita
                       </button>
@@ -1063,34 +1067,26 @@ export default function App() {
       </main>
 
       {/* Quiet Editorial Footer */}
-      <footer className="bg-[#F9F8F6] border-t border-[#E2DFD9] py-10">
+      <footer className="bg-white border-t border-[#E6E2E8] py-10">
         <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="flex items-center gap-3">
-            <BrandMark className="w-6 h-6 shrink-0" strokeColor="#161513" accentColor="#9A7B3E" />
-            <div>
-              <p className="font-editorial text-lg font-semibold text-[#161513] leading-none">
-                Mujer Inmobiliaria &amp; Asociadas
-              </p>
-              <p className="mt-1 text-xs text-[#57534E]">
-                Querétaro · Yucatán · Estado de México
-              </p>
-            </div>
+          <div className="flex items-center gap-4">
+            <BrandLogo className="h-11 w-auto" />
           </div>
 
           <div className="flex flex-wrap items-center gap-6 text-xs text-[#57534E]">
-            <a href="#inicio" className="hover:text-[#161513] transition-colors">
+            <a href="#inicio" className="hover:text-[#892B84] transition-colors">
               Inicio
             </a>
-            <a href="#nosotras" className="hover:text-[#161513] transition-colors">
+            <a href="#nosotras" className="hover:text-[#892B84] transition-colors">
               Nosotras
             </a>
-            <a href="#servicios" className="hover:text-[#161513] transition-colors">
+            <a href="#servicios" className="hover:text-[#892B84] transition-colors">
               Servicios
             </a>
-            <a href="#inmuebles" className="hover:text-[#161513] transition-colors">
+            <a href="#inmuebles" className="hover:text-[#892B84] transition-colors">
               Inmuebles
             </a>
-            <a href="#contacto" className="hover:text-[#161513] transition-colors">
+            <a href="#contacto" className="hover:text-[#892B84] transition-colors">
               Contacto
             </a>
           </div>

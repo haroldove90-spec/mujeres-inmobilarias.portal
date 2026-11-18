@@ -59,13 +59,13 @@ export const PropertyModal: React.FC<PropertyModalProps> = ({
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-4xl max-h-[92vh] overflow-y-auto bg-[#F9F8F6] border border-[#E2DFD9] shadow-2xl"
+        className="relative w-full max-w-4xl max-h-[92vh] overflow-y-auto bg-white border border-[#E6E2E8] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top bar */}
-        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 px-4 sm:px-6 py-3.5 sm:py-4 bg-[#F9F8F6]/95 border-b border-[#E2DFD9]">
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 px-4 sm:px-6 py-3.5 sm:py-4 bg-white/95 border-b border-[#E6E2E8]">
           <div className="flex items-center flex-wrap gap-x-2 gap-y-1 text-xs text-[#57534E] font-mono tabular-nums min-w-0">
-            <span>{property.folio}</span>
+            <span className="text-[#892B84] font-semibold">{property.folio}</span>
             <span aria-hidden="true">·</span>
             <span>{property.operation}</span>
             <span aria-hidden="true">·</span>
@@ -75,14 +75,14 @@ export const PropertyModal: React.FC<PropertyModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Cerrar ficha técnica"
-            className="w-9 h-9 shrink-0 inline-flex items-center justify-center border border-[#E2DFD9] bg-white text-[#161513] hover:bg-[#EFECE7] transition-colors cursor-pointer"
+            className="w-9 h-9 shrink-0 inline-flex items-center justify-center border border-[#E6E2E8] bg-white text-[#161513] hover:border-[#892B84] hover:text-[#892B84] transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Media header */}
-        <div className="aspect-[16/9] w-full bg-[#EFECE7] overflow-hidden border-b border-[#E2DFD9]">
+        <div className="aspect-[16/9] w-full bg-[#F9F8FA] overflow-hidden border-b border-[#E6E2E8]">
           {!imgError ? (
             <img
               src={property.image}
@@ -92,7 +92,7 @@ export const PropertyModal: React.FC<PropertyModalProps> = ({
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-[#57534E] bg-gradient-to-br from-[#EFECE7] to-[#E2DFD9]">
+            <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-[#57534E] bg-gradient-to-br from-[#F9F8FA] to-[#E6E2E8]">
               <Building2 className="w-8 h-8" />
               <span className="text-sm font-medium">{property.title}</span>
             </div>
@@ -112,7 +112,7 @@ export const PropertyModal: React.FC<PropertyModalProps> = ({
               >
                 {property.title}
               </h2>
-              <p className="mt-2 font-mono text-2xl font-medium text-[#1B4332] tabular-nums">
+              <p className="mt-2 font-mono text-2xl font-medium text-[#892B84] tabular-nums">
                 {formatMxn(property.priceMxn)}
                 {property.priceSuffix ? (
                   <span className="text-sm font-sans text-[#57534E] ml-1">
@@ -125,7 +125,7 @@ export const PropertyModal: React.FC<PropertyModalProps> = ({
             <p className="text-[15px] leading-relaxed text-[#44403C]">{property.description}</p>
 
             {/* Technical specs table */}
-            <div className="border-t border-b border-[#E2DFD9] py-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="border-t border-b border-[#E6E2E8] py-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
               <div>
                 <p className="text-[11px] uppercase tracking-[0.14em] text-[#57534E]">Terreno</p>
                 <p className="mt-1 font-mono text-sm font-medium text-[#161513] tabular-nums">
@@ -174,7 +174,7 @@ export const PropertyModal: React.FC<PropertyModalProps> = ({
               <ul className="mt-3 space-y-2">
                 {property.highlights.map((item) => (
                   <li key={item} className="text-sm text-[#44403C] flex items-start gap-2.5">
-                    <span className="text-[#9A7B3E] mt-0.5" aria-hidden="true">
+                    <span className="text-[#892B84] mt-0.5" aria-hidden="true">
                       —
                     </span>
                     <span>{item}</span>
@@ -185,8 +185,8 @@ export const PropertyModal: React.FC<PropertyModalProps> = ({
           </div>
 
           {/* Right: Advisor & Private Tour Booking */}
-          <div className="lg:col-span-5 bg-white border border-[#E2DFD9] p-6 self-start space-y-5">
-            <div className="pb-4 border-b border-[#E2DFD9]">
+          <div className="lg:col-span-5 bg-[#F9F8FA] border border-[#E6E2E8] p-6 self-start space-y-5">
+            <div className="pb-4 border-b border-[#E6E2E8]">
               <p className="text-[11px] uppercase tracking-[0.16em] text-[#57534E]">
                 Asesora asignada
               </p>
@@ -200,7 +200,7 @@ export const PropertyModal: React.FC<PropertyModalProps> = ({
 
             {submitted ? (
               <div className="py-6 space-y-3">
-                <div className="w-9 h-9 bg-[#1B4332] text-white inline-flex items-center justify-center">
+                <div className="w-9 h-9 bg-[#892B84] text-white inline-flex items-center justify-center">
                   <Check className="w-4 h-4" />
                 </div>
                 <h3 className="font-sans text-base font-semibold text-[#161513]">
@@ -225,7 +225,7 @@ export const PropertyModal: React.FC<PropertyModalProps> = ({
                     value={visitorName}
                     onChange={(e) => setVisitorName(e.target.value)}
                     placeholder="Ej. Mariana Ortega"
-                    className="w-full px-3 py-2 text-sm bg-[#F9F8F6] border border-[#E2DFD9] text-[#161513] focus:outline-none focus:border-[#1B4332]"
+                    className="w-full px-3 py-2 text-sm bg-white border border-[#E6E2E8] text-[#161513] focus:outline-none focus:border-[#892B84]"
                   />
                 </div>
                 <div>
@@ -235,7 +235,7 @@ export const PropertyModal: React.FC<PropertyModalProps> = ({
                     value={visitorEmail}
                     onChange={(e) => setVisitorEmail(e.target.value)}
                     placeholder="nombre@correo.com"
-                    className="w-full px-3 py-2 text-sm bg-[#F9F8F6] border border-[#E2DFD9] text-[#161513] focus:outline-none focus:border-[#1B4332]"
+                    className="w-full px-3 py-2 text-sm bg-white border border-[#E6E2E8] text-[#161513] focus:outline-none focus:border-[#892B84]"
                   />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -246,7 +246,7 @@ export const PropertyModal: React.FC<PropertyModalProps> = ({
                       value={visitorPhone}
                       onChange={(e) => setVisitorPhone(e.target.value)}
                       placeholder="442 000 0000"
-                      className="w-full px-3 py-2 text-sm bg-[#F9F8F6] border border-[#E2DFD9] text-[#161513] focus:outline-none focus:border-[#1B4332]"
+                      className="w-full px-3 py-2 text-sm bg-white border border-[#E6E2E8] text-[#161513] focus:outline-none focus:border-[#892B84]"
                     />
                   </div>
                   <div>
@@ -255,14 +255,14 @@ export const PropertyModal: React.FC<PropertyModalProps> = ({
                       type="date"
                       value={preferredDate}
                       onChange={(e) => setPreferredDate(e.target.value)}
-                      className="w-full px-3 py-2 text-sm bg-[#F9F8F6] border border-[#E2DFD9] text-[#161513] focus:outline-none focus:border-[#1B4332]"
+                      className="w-full px-3 py-2 text-sm bg-white border border-[#E6E2E8] text-[#161513] focus:outline-none focus:border-[#892B84]"
                     />
                   </div>
                 </div>
                 {formError && <p className="text-xs text-[#9A3412]">{formError}</p>}
                 <button
                   type="submit"
-                  className="w-full py-2.5 px-4 bg-[#1B4332] text-white text-xs font-semibold hover:bg-[#143326] transition-colors cursor-pointer"
+                  className="w-full py-2.5 px-4 bg-[#892B84] text-white text-xs font-semibold hover:bg-[#6E206A] transition-colors cursor-pointer"
                 >
                   Solicitar visita y dossier
                 </button>

@@ -18,13 +18,13 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
   const [imgError, setImgError] = useState(false);
 
   return (
-    <article className="group bg-white border border-[#E2DFD9] flex flex-col transition-colors duration-200 hover:border-[#161513]/40">
+    <article className="group bg-white border border-[#E6E2E8] flex flex-col transition-colors duration-200 hover:border-[#892B84]/50">
       {/* 4:3 Architectural Thumbnail */}
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#EFECE7] border-b border-[#E2DFD9]">
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#F9F8FA] border-b border-[#E6E2E8]">
         <button
           type="button"
           onClick={() => onSelect(property)}
-          className="block w-full h-full text-left cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#1B4332]"
+          className="block w-full h-full text-left cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#892B84]"
           aria-label={`Ver ficha técnica de ${property.title}`}
         >
           {!imgError ? (
@@ -36,7 +36,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
               className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
             />
           ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-[#57534E] bg-gradient-to-br from-[#EFECE7] to-[#E2DFD9] p-4">
+            <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-[#57534E] bg-gradient-to-br from-[#F9F8FA] to-[#E6E2E8] p-4">
               <Building2 className="w-7 h-7" />
               <span className="text-xs font-medium text-center">{property.title}</span>
             </div>
@@ -50,8 +50,8 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
           aria-pressed={isSaved}
           className={`absolute top-3 right-3 w-9 h-9 inline-flex items-center justify-center border transition-colors cursor-pointer ${
             isSaved
-              ? 'bg-[#1B4332] border-[#1B4332] text-white'
-              : 'bg-white/95 border-[#E2DFD9] text-[#161513] hover:bg-white'
+              ? 'bg-[#892B84] border-[#892B84] text-white'
+              : 'bg-white/95 border-[#E6E2E8] text-[#161513] hover:border-[#892B84] hover:text-[#892B84]'
           }`}
         >
           <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
@@ -62,7 +62,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
       <div className="p-5 sm:p-6 flex flex-col flex-1 justify-between gap-5 min-w-0">
         <div className="min-w-0">
           <div className="flex items-center flex-wrap gap-x-2 gap-y-1 text-xs text-[#57534E]">
-            <span className="font-medium text-[#1B4332]">{property.operation}</span>
+            <span className="font-semibold text-[#892B84]">{property.operation}</span>
             <span aria-hidden="true">·</span>
             <span>{property.state}</span>
             <span aria-hidden="true">·</span>
@@ -73,7 +73,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
             <button
               type="button"
               onClick={() => onSelect(property)}
-              className="text-left hover:text-[#1B4332] transition-colors cursor-pointer"
+              className="text-left hover:text-[#892B84] transition-colors cursor-pointer"
             >
               {property.title}
             </button>
@@ -82,7 +82,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
           <p className="mt-1 text-xs text-[#57534E] truncate">{property.zone}</p>
         </div>
 
-        <div className="pt-4 border-t border-[#E2DFD9] space-y-4">
+        <div className="pt-4 border-t border-[#E6E2E8] space-y-4">
           <div className="flex items-baseline justify-between gap-3">
             <p className="font-mono text-lg font-medium text-[#161513] tabular-nums">
               {formatMxn(property.priceMxn)}
@@ -106,7 +106,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
             <button
               type="button"
               onClick={() => onSelect(property)}
-              className="inline-flex items-center gap-1 font-semibold text-[#161513] hover:text-[#1B4332] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              className="inline-flex items-center gap-1 font-semibold text-[#892B84] hover:text-[#6E206A] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
             >
               <span>Ver ficha</span>
               <ArrowUpRight className="w-3.5 h-3.5" />

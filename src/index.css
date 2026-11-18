@@ -9,7 +9,7 @@
 @layer base {
   body {
     font-family: var(--font-sans);
-    background-color: #F9F8F6;
+    background-color: #FFFFFF;
     color: #161513;
   }
 
@@ -20,6 +20,20 @@
 
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+}
+
+@keyframes splashProgress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.animate-splash-progress {
+  transform-origin: left;
+  animation: splashProgress 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
