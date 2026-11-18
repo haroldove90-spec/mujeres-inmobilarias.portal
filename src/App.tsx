@@ -281,8 +281,9 @@ export default function App() {
             </a>
           </nav>
 
-          {/* Zone 3: 1 Primary Action + Mobile Menu Trigger */}
-          <div className="flex items-center gap-3 shrink-0">
+          {/* Zone 3: Install App + Primary Action + Mobile Menu Trigger */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <PWAInstallButton variant="header" />
             <button
               type="button"
               onClick={() => scrollToSection('contacto')}
