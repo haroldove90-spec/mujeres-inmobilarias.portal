@@ -10,11 +10,18 @@ create table if not exists public.portal_users (
   full_name text not null,
   email text not null unique,
   whatsapp text not null default '',
+  job_title text not null default '',
+  bio text not null default '',
+  avatar_url text not null default '',
   role text not null check (role in ('administradora', 'asesora', 'cliente')),
   password_hash text not null,
   active boolean not null default true,
   created_at timestamptz not null default now()
 );
+
+alter table public.portal_users add column if not exists job_title text not null default '';
+alter table public.portal_users add column if not exists bio text not null default '';
+alter table public.portal_users add column if not exists avatar_url text not null default '';
 
 -- 2. Sesiones privadas verificadas en servidor
 create table if not exists public.portal_sessions (
@@ -33,9 +40,16 @@ create table if not exists public.advisors (
   license text not null default '',
   email text not null,
   phone text not null default '',
+  zone text not null default '',
+  bio text not null default '',
+  avatar_url text not null default '',
   active boolean not null default true,
   created_at timestamptz not null default now()
 );
+
+alter table public.advisors add column if not exists zone text not null default '';
+alter table public.advisors add column if not exists bio text not null default '';
+alter table public.advisors add column if not exists avatar_url text not null default '';
 
 -- 4. Catálogo de inmuebles
 create table if not exists public.properties (
@@ -313,6 +327,86 @@ begin
       'fullName', v_user.full_name,
       'email', v_user.email,
       'whatsapp', v_user.whatsapp,
+      'jobTitle', v_user.job_title,
+      'bio', v_user.bio,
+      'avatarUrl', v_user.avatar_url,
+      'role', v_user.role
+    )
+  );
+end;
+$$;
+
+create or replace function public.admin_update_own_profile(
+  p_token text,
+  p_full_name text,
+  p_email text,
+  p_whatsapp text default '',
+  p_job_title text default '',
+  p_bio text default '',
+  p_avatar_url text default ''
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_user_id uuid;
+  v_role text;
+  v_email text := lower(trim(coalesce(p_email, '')));
+  v_full_name text := trim(coalesce(p_full_name, ''));
+  v_user public.portal_users%rowtype;
+begin
+  select s.user_id, u.role
+  into v_user_id, v_role
+  from public.portal_sessions s
+  join public.portal_users u on u.id = s.user_id
+  where s.token = p_token
+    and s.expires_at > now()
+    and u.active = true;
+
+  if v_user_id is null or v_role not in ('administradora', 'asesora') then
+    return jsonb_build_object('ok', false, 'error', 'Sesión administrativa no autorizada.');
+  end if;
+
+  if length(v_full_name) < 2 then
+    return jsonb_build_object('ok', false, 'error', 'Ingresa tu nombre completo.');
+  end if;
+
+  if position('@' in v_email) <= 1 then
+    return jsonb_build_object('ok', false, 'error', 'Ingresa un correo electrónico válido.');
+  end if;
+
+  if exists (
+    select 1
+    from public.portal_users
+    where lower(email) = v_email
+      and id <> v_user_id
+  ) then
+    return jsonb_build_object('ok', false, 'error', 'Ese correo electrónico ya está en uso por otra cuenta.');
+  end if;
+
+  update public.portal_users
+  set full_name = v_full_name,
+      email = v_email,
+      whatsapp = trim(coalesce(p_whatsapp, '')),
+      job_title = trim(coalesce(p_job_title, '')),
+      bio = trim(coalesce(p_bio, '')),
+      avatar_url = trim(coalesce(p_avatar_url, ''))
+  where id = v_user_id
+  returning * into v_user;
+
+  return jsonb_build_object(
+    'ok', true,
+    'user', jsonb_build_object(
+      'id', v_user.id,
+      'username', v_user.username,
+      'fullName', v_user.full_name,
+      'email', v_user.email,
+      'whatsapp', v_user.whatsapp,
+      'jobTitle', v_user.job_title,
+      'bio', v_user.bio,
+      'avatarUrl', v_user.avatar_url,
       'role', v_user.role
     )
   );
@@ -480,7 +574,7 @@ as $$
 begin
   perform public.require_admin_role(p_token, true);
 
-  insert into public.advisors (id, name, role, license, email, phone, active)
+  insert into public.advisors (id, name, role, license, email, phone, zone, bio, avatar_url, active)
   values (
     p_item->>'id',
     p_item->>'name',
@@ -488,6 +582,9 @@ begin
     coalesce(p_item->>'license', ''),
     p_item->>'email',
     coalesce(p_item->>'phone', ''),
+    coalesce(p_item->>'zone', ''),
+    coalesce(p_item->>'bio', ''),
+    coalesce(p_item->>'avatar_url', ''),
     coalesce((p_item->>'active')::boolean, true)
   )
   on conflict (id) do update set
@@ -496,6 +593,9 @@ begin
     license = excluded.license,
     email = excluded.email,
     phone = excluded.phone,
+    zone = excluded.zone,
+    bio = excluded.bio,
+    avatar_url = excluded.avatar_url,
     active = excluded.active;
 end;
 $$;
@@ -644,6 +744,7 @@ $$;
 
 grant execute on function public.login_portal_user(text, text, text) to anon, authenticated;
 grant execute on function public.logout_portal_user(text) to anon, authenticated;
+grant execute on function public.admin_update_own_profile(text, text, text, text, text, text, text) to anon, authenticated;
 grant execute on function public.admin_list_properties(text) to anon, authenticated;
 grant execute on function public.admin_upsert_property(text, jsonb) to anon, authenticated;
 grant execute on function public.admin_delete_property(text, text) to anon, authenticated;

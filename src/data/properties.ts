@@ -16,6 +16,9 @@ export const DEFAULT_ADVISORS: Advisor[] = [
     license: 'Lic. Inmobiliaria Qro. 0418',
     email: 'sofia@mujerinmobiliariayasociadas.com',
     phone: '+52 442 275 9370',
+    zone: 'Santiago de Querétaro, Qro.',
+    bio: 'Especialista en propiedades residenciales de autor, valuación comercial y cierres notariales en El Campanario y Juriquilla.',
+    avatarUrl: '',
     active: true,
   },
   {
@@ -25,6 +28,9 @@ export const DEFAULT_ADVISORS: Advisor[] = [
     license: 'Registro Estatal Yuc. 1192',
     email: 'valentina@mujerinmobiliariayasociadas.com',
     phone: '+52 999 412 8830',
+    zone: 'Mérida, Yucatán',
+    bio: 'Líder de operaciones en Temozón Norte y corredor corporativo de Mérida, enfocada en inversión patrimonial y villas contemporáneas.',
+    avatarUrl: '',
     active: true,
   },
   {
@@ -34,6 +40,9 @@ export const DEFAULT_ADVISORS: Advisor[] = [
     license: 'Certificación AMPI 2026',
     email: 'camila@mujerinmobiliariayasociadas.com',
     phone: '+52 55 4891 2240',
+    zone: 'Zona Esmeralda, Estado de México',
+    bio: 'Asesora certificada AMPI en residencias familiares, negociación directa y blindaje documental en corredores del Valle de México.',
+    avatarUrl: '',
     active: true,
   },
   {
@@ -43,6 +52,9 @@ export const DEFAULT_ADVISORS: Advisor[] = [
     license: 'Valuación & Factibilidad',
     email: 'renata@mujerinmobiliariayasociadas.com',
     phone: '+52 442 318 6512',
+    zone: 'Querétaro y Bajío',
+    bio: 'Consultora en macrolotes, dictamen de uso de suelo, factibilidad técnica y estructuración patrimonial para inversionistas.',
+    avatarUrl: '',
     active: true,
   },
 ];

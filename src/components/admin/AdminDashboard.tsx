@@ -10,11 +10,16 @@ import {
   Inbox,
   LayoutDashboard,
   LogOut,
+  Mail,
+  MapPin,
   Menu,
+  Phone,
   Plus,
   Search,
   Star,
   Trash2,
+  Upload,
+  User,
   Users,
   X,
 } from 'lucide-react';
@@ -31,13 +36,23 @@ import {
 } from '../../types/portal';
 import { formatMxn } from '../../data/properties';
 import { formatReadableDate } from '../../lib/calendarUtils';
+import { compressImageFile, getInitials, sanitizeImageUrl } from '../../lib/imageUtils';
 import { BrandLogo } from '../BrandLogo';
 import { PropertyEditorModal } from './PropertyEditorModal';
 import { AdminCmsEditor } from './AdminCmsEditor';
 import { AdminAgenda } from './AdminAgenda';
 import { AdminPhotosManager } from './AdminPhotosManager';
+import { AdminProfile, AdminProfileUpdates } from './AdminProfile';
 
-type AdminView = 'overview' | 'agenda' | 'photos' | 'properties' | 'leads' | 'advisors' | 'cms';
+type AdminView =
+  | 'overview'
+  | 'agenda'
+  | 'photos'
+  | 'properties'
+  | 'leads'
+  | 'advisors'
+  | 'cms'
+  | 'profile';
 
 interface AdminDashboardProps {
   session: AdminSession;
@@ -48,6 +63,7 @@ interface AdminDashboardProps {
   siteContent: SiteContent;
   onBackToPortal: () => void;
   onLogout: () => void;
+  onUpdateProfile: (updates: AdminProfileUpdates) => Promise<void>;
   onSaveProperty: (property: PropertyListing) => Promise<void>;
   onDeleteProperty: (id: string) => Promise<void>;
   onUpdateLead: (lead: LeadRecord) => Promise<void>;
@@ -85,6 +101,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   siteContent,
   onBackToPortal,
   onLogout,
+  onUpdateProfile,
   onSaveProperty,
   onDeleteProperty,
   onUpdateLead,
@@ -122,6 +139,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [advLicense, setAdvLicense] = useState('');
   const [advEmail, setAdvEmail] = useState('');
   const [advPhone, setAdvPhone] = useState('');
+  const [advZone, setAdvZone] = useState('');
+  const [advBio, setAdvBio] = useState('');
+  const [advAvatarUrl, setAdvAvatarUrl] = useState('');
+  const [advActive, setAdvActive] = useState(true);
+  const [advSaving, setAdvSaving] = useState(false);
+  const [advError, setAdvError] = useState('');
   const [confirmDeleteAdvId, setConfirmDeleteAdvId] = useState<string | null>(null);
 
   const metrics = useMemo(() => {
@@ -173,17 +196,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       { id: 'photos', label: 'Fotos y Portada', icon: <ImageIcon className="w-4 h-4" /> },
       { id: 'properties', label: 'Inmuebles y precios', icon: <Building2 className="w-4 h-4" /> },
       { id: 'leads', label: 'Prospectos y visitas', icon: <Inbox className="w-4 h-4" /> },
-      {
-        id: 'advisors',
-        label: 'Asesoras',
-        icon: <Users className="w-4 h-4" />,
-        adminOnly: true,
-      },
-      {
-        id: 'cms',
-        label: 'Contenidos del portal',
-        icon: <FileText className="w-4 h-4" />,
-      },
+      { id: 'advisors', label: 'Asesoras', icon: <Users className="w-4 h-4" /> },
+      { id: 'cms', label: 'Contenidos del portal', icon: <FileText className="w-4 h-4" /> },
+      { id: 'profile', label: 'Mi Perfil', icon: <User className="w-4 h-4" /> },
     ];
 
   const visibleNavItems = navItems.filter(
@@ -206,6 +221,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   const openAdvisorForm = (adv?: Advisor) => {
+    setAdvError('');
     if (adv) {
       setAdvEditingId(adv.id);
       setAdvName(adv.name);
@@ -213,6 +229,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setAdvLicense(adv.license);
       setAdvEmail(adv.email);
       setAdvPhone(adv.phone);
+      setAdvZone(adv.zone ?? '');
+      setAdvBio(adv.bio ?? '');
+      setAdvAvatarUrl(adv.avatarUrl ?? '');
+      setAdvActive(adv.active);
     } else {
       setAdvEditingId(null);
       setAdvName('');
@@ -220,24 +240,63 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setAdvLicense('');
       setAdvEmail('');
       setAdvPhone('');
+      setAdvZone('');
+      setAdvBio('');
+      setAdvAvatarUrl('');
+      setAdvActive(true);
     }
     setAdvFormOpen(true);
   };
 
+  const handleAdvisorPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAdvError('');
+    try {
+      const compressed = await compressImageFile(file, 600, 0.85);
+      setAdvAvatarUrl(compressed);
+    } catch (err) {
+      setAdvError(err instanceof Error ? err.message : 'No se pudo procesar la foto.');
+    }
+    e.target.value = '';
+  };
+
   const handleSaveAdvisorForm = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!advName.trim() || !advEmail.includes('@')) return;
-    await onSaveAdvisor({
-      id: advEditingId ?? `adv-${Date.now()}`,
-      name: advName.trim(),
-      role: advRole.trim() || 'Asesora Inmobiliaria',
-      license: advLicense.trim(),
-      email: advEmail.trim(),
-      phone: advPhone.trim(),
-      active: true,
-    });
-    setAdvFormOpen(false);
+    setAdvError('');
+    if (!advName.trim() || !advEmail.includes('@')) {
+      setAdvError('Ingresa el nombre completo y un correo electrónico válido.');
+      return;
+    }
+    if (advAvatarUrl.trim() && !sanitizeImageUrl(advAvatarUrl)) {
+      setAdvError('La URL de la foto debe iniciar con https:// o ser una imagen subida.');
+      return;
+    }
+    setAdvSaving(true);
+    try {
+      await onSaveAdvisor({
+        id: advEditingId ?? `adv-${Date.now()}`,
+        name: advName.trim(),
+        role: advRole.trim() || 'Asesora Inmobiliaria',
+        license: advLicense.trim(),
+        email: advEmail.trim(),
+        phone: advPhone.trim(),
+        zone: advZone.trim(),
+        bio: advBio.trim(),
+        avatarUrl: sanitizeImageUrl(advAvatarUrl),
+        active: advActive,
+      });
+      setAdvFormOpen(false);
+    } catch (err) {
+      setAdvError(
+        err instanceof Error ? err.message : 'No se pudo guardar la información de la asesora.'
+      );
+    } finally {
+      setAdvSaving(false);
+    }
   };
+
+  const sessionAvatar = sanitizeImageUrl(session.avatarUrl);
 
   return (
     <div className="min-h-screen bg-[#F9F8FA] text-[#161513] flex">
@@ -291,13 +350,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
 
         <div className="p-4 border-t border-[#E6E2E8] space-y-3">
-          <div className="text-xs">
-            <p className="font-semibold text-[#161513] truncate">{session.name}</p>
-            <p className="text-[#57534E] truncate">{session.email}</p>
-            <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-[#892B84] font-semibold">
-              {session.role}
-            </p>
-          </div>
+          <button
+            type="button"
+            onClick={() => setView('profile')}
+            className="w-full text-left flex items-center gap-3 p-2 -mx-2 hover:bg-[#F9F8FA] transition-colors cursor-pointer"
+          >
+            <div className="w-10 h-10 shrink-0 border border-[#E6E2E8] bg-[#F9F5F9] overflow-hidden flex items-center justify-center">
+              {sessionAvatar ? (
+                <img
+                  src={sessionAvatar}
+                  alt={session.name}
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="font-editorial text-sm font-medium text-[#892B84]">
+                  {getInitials(session.name)}
+                </span>
+              )}
+            </div>
+            <div className="min-w-0 text-xs">
+              <p className="font-semibold text-[#161513] truncate">{session.name}</p>
+              <p className="text-[#57534E] truncate">{session.jobTitle || session.email}</p>
+              <p className="mt-0.5 text-[10px] uppercase tracking-[0.14em] text-[#892B84] font-semibold">
+                {session.role} · Editar perfil
+              </p>
+            </div>
+          </button>
           <button
             type="button"
             onClick={onLogout}
@@ -1104,152 +1183,364 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           {/* VIEW 4: ADVISORS TEAM */}
           {view === 'advisors' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between gap-4">
-                <p className="text-sm text-[#57534E]">
-                  Equipo autorizado para asignación de propiedades y prospectos.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => openAdvisorForm()}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#892B84] text-white text-xs font-semibold hover:bg-[#6E206A] cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Agregar asesora</span>
-                </button>
+            <div className="space-y-6">
+              <div className="bg-white border border-[#E6E2E8] p-5 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <h2 className="font-sans text-base font-semibold text-[#161513]">
+                    Directorio de Asesoras
+                  </h2>
+                  <p className="text-xs text-[#57534E] mt-0.5">
+                    Consulta los datos completos, fotografía de perfil, plaza y propiedades asignadas de cada asesora.
+                  </p>
+                </div>
+                {session.role === 'administradora' && (
+                  <button
+                    type="button"
+                    onClick={() => openAdvisorForm()}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#892B84] text-white text-xs font-semibold hover:bg-[#6E206A] cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Agregar asesora</span>
+                  </button>
+                )}
               </div>
+
+              {advError && (
+                <div className="p-3.5 bg-[#FEF2F2] border border-[#FECACA] text-xs text-[#B91C1C]">
+                  {advError}
+                </div>
+              )}
 
               {advFormOpen && (
                 <form
                   onSubmit={handleSaveAdvisorForm}
-                  className="bg-white border border-[#E6E2E8] p-5 space-y-4"
+                  className="bg-white border border-[#892B84]/40 p-5 sm:p-6 space-y-5"
                 >
-                  <h3 className="font-sans text-sm font-semibold text-[#161513]">
-                    {advEditingId ? 'Editar asesora' : 'Nueva asesora'}
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <input
-                      type="text"
-                      value={advName}
-                      onChange={(e) => setAdvName(e.target.value)}
-                      placeholder="Nombre completo"
-                      className="px-3 py-2 text-xs bg-[#F9F8FA] border border-[#E6E2E8] focus:outline-none focus:border-[#892B84]"
-                    />
-                    <input
-                      type="text"
-                      value={advRole}
-                      onChange={(e) => setAdvRole(e.target.value)}
-                      placeholder="Cargo / Especialidad"
-                      className="px-3 py-2 text-xs bg-[#F9F8FA] border border-[#E6E2E8] focus:outline-none focus:border-[#892B84]"
-                    />
-                    <input
-                      type="text"
-                      value={advLicense}
-                      onChange={(e) => setAdvLicense(e.target.value)}
-                      placeholder="Licencia o registro"
-                      className="px-3 py-2 text-xs bg-[#F9F8FA] border border-[#E6E2E8] focus:outline-none focus:border-[#892B84]"
-                    />
-                    <input
-                      type="email"
-                      value={advEmail}
-                      onChange={(e) => setAdvEmail(e.target.value)}
-                      placeholder="Correo electrónico"
-                      className="px-3 py-2 text-xs bg-[#F9F8FA] border border-[#E6E2E8] focus:outline-none focus:border-[#892B84]"
-                    />
-                    <input
-                      type="tel"
-                      value={advPhone}
-                      onChange={(e) => setAdvPhone(e.target.value)}
-                      placeholder="Teléfono / WhatsApp"
-                      className="px-3 py-2 text-xs bg-[#F9F8FA] border border-[#E6E2E8] focus:outline-none focus:border-[#892B84]"
-                    />
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="submit"
-                        className="px-4 py-2 bg-[#892B84] text-white text-xs font-semibold cursor-pointer"
-                      >
-                        Guardar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setAdvFormOpen(false)}
-                        className="px-4 py-2 border border-[#E6E2E8] text-xs font-medium cursor-pointer"
-                      >
-                        Cancelar
-                      </button>
+                  <div className="flex items-center justify-between gap-4 pb-3 border-b border-[#E6E2E8]">
+                    <h3 className="font-sans text-sm font-semibold text-[#161513]">
+                      {advEditingId ? 'Editar perfil de asesora' : 'Nueva asesora'}
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => setAdvFormOpen(false)}
+                      aria-label="Cerrar formulario"
+                      className="text-[#57534E] hover:text-[#161513] cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                    {/* Photo upload column */}
+                    <div className="lg:col-span-4 flex flex-col items-center text-center space-y-3 bg-[#F9F8FA] border border-[#E6E2E8] p-4">
+                      <div className="w-24 h-24 border border-[#E6E2E8] bg-white overflow-hidden flex items-center justify-center">
+                        {sanitizeImageUrl(advAvatarUrl) ? (
+                          <img
+                            src={sanitizeImageUrl(advAvatarUrl)}
+                            alt={advName || 'Asesora'}
+                            referrerPolicy="no-referrer"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="font-editorial text-2xl font-medium text-[#892B84]">
+                            {getInitials(advName || 'Asesora')}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap items-center justify-center gap-2">
+                        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-[#892B84] text-[#892B84] text-xs font-semibold hover:bg-[#892B84] hover:text-white transition-colors cursor-pointer">
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>Subir foto</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleAdvisorPhotoUpload}
+                            className="hidden"
+                          />
+                        </label>
+                        {sanitizeImageUrl(advAvatarUrl) && (
+                          <button
+                            type="button"
+                            onClick={() => setAdvAvatarUrl('')}
+                            className="px-2.5 py-1.5 border border-[#E6E2E8] text-xs text-[#DC2626] bg-white cursor-pointer"
+                          >
+                            Quitar
+                          </button>
+                        )}
+                      </div>
+
+                      <input
+                        type="text"
+                        value={advAvatarUrl.startsWith('data:') ? '' : advAvatarUrl}
+                        onChange={(e) => setAdvAvatarUrl(e.target.value)}
+                        placeholder="O pega URL de foto (https://...)"
+                        className="w-full px-3 py-2 text-xs bg-white border border-[#E6E2E8] focus:outline-none focus:border-[#892B84]"
+                      />
+                    </div>
+
+                    {/* Advisor fields column */}
+                    <div className="lg:col-span-8 space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-[11px] text-[#57534E] mb-1">
+                            Nombre completo *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={advName}
+                            onChange={(e) => setAdvName(e.target.value)}
+                            placeholder="Ej. Sofía Mendoza Villalobos"
+                            className="w-full px-3 py-2 text-xs bg-[#F9F8FA] border border-[#E6E2E8] focus:outline-none focus:border-[#892B84]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] text-[#57534E] mb-1">
+                            Cargo / Especialidad
+                          </label>
+                          <input
+                            type="text"
+                            value={advRole}
+                            onChange={(e) => setAdvRole(e.target.value)}
+                            placeholder="Ej. Directora de Portafolio Residencial"
+                            className="w-full px-3 py-2 text-xs bg-[#F9F8FA] border border-[#E6E2E8] focus:outline-none focus:border-[#892B84]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] text-[#57534E] mb-1">
+                            Licencia o registro
+                          </label>
+                          <input
+                            type="text"
+                            value={advLicense}
+                            onChange={(e) => setAdvLicense(e.target.value)}
+                            placeholder="Ej. Lic. Inmobiliaria Qro. 0418"
+                            className="w-full px-3 py-2 text-xs bg-[#F9F8FA] border border-[#E6E2E8] focus:outline-none focus:border-[#892B84]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] text-[#57534E] mb-1">
+                            Plaza / Zona de atención
+                          </label>
+                          <input
+                            type="text"
+                            value={advZone}
+                            onChange={(e) => setAdvZone(e.target.value)}
+                            placeholder="Ej. Santiago de Querétaro, Qro."
+                            className="w-full px-3 py-2 text-xs bg-[#F9F8FA] border border-[#E6E2E8] focus:outline-none focus:border-[#892B84]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] text-[#57534E] mb-1">
+                            Correo electrónico *
+                          </label>
+                          <input
+                            type="email"
+                            required
+                            value={advEmail}
+                            onChange={(e) => setAdvEmail(e.target.value)}
+                            placeholder="asesora@mujerinmobiliariayasociadas.com"
+                            className="w-full px-3 py-2 text-xs bg-[#F9F8FA] border border-[#E6E2E8] focus:outline-none focus:border-[#892B84]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] text-[#57534E] mb-1">
+                            Teléfono / WhatsApp
+                          </label>
+                          <input
+                            type="tel"
+                            value={advPhone}
+                            onChange={(e) => setAdvPhone(e.target.value)}
+                            placeholder="+52 442 275 9370"
+                            className="w-full px-3 py-2 text-xs bg-[#F9F8FA] border border-[#E6E2E8] focus:outline-none focus:border-[#892B84]"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] text-[#57534E] mb-1">
+                          Semblanza o especialidad
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={advBio}
+                          onChange={(e) => setAdvBio(e.target.value)}
+                          placeholder="Experiencia, tipo de propiedades y zonas que atiende..."
+                          className="w-full px-3 py-2 text-xs bg-[#F9F8FA] border border-[#E6E2E8] focus:outline-none focus:border-[#892B84]"
+                        />
+                      </div>
+
+                      <div className="flex flex-wrap items-center justify-between gap-4 pt-1">
+                        <label className="inline-flex items-center gap-2 text-xs text-[#161513] cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={advActive}
+                            onChange={(e) => setAdvActive(e.target.checked)}
+                            className="accent-[#892B84]"
+                          />
+                          <span>Asesora activa en portal</span>
+                        </label>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setAdvFormOpen(false)}
+                            className="px-4 py-2 border border-[#E6E2E8] text-xs font-medium cursor-pointer"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={advSaving}
+                            className="px-4 py-2 bg-[#892B84] text-white text-xs font-semibold hover:bg-[#6E206A] disabled:opacity-60 cursor-pointer"
+                          >
+                            {advSaving ? 'Guardando...' : 'Guardar asesora'}
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </form>
               )}
 
-              <div className="bg-white border border-[#E6E2E8] overflow-x-auto">
-                <table className="w-full text-left border-collapse min-w-[680px]">
-                  <thead>
-                    <tr className="border-b border-[#E6E2E8] bg-[#F9F8FA] text-[11px] uppercase tracking-[0.14em] text-[#57534E]">
-                      <th className="py-3 px-4 font-semibold">Nombre</th>
-                      <th className="py-3 px-4 font-semibold">Cargo</th>
-                      <th className="py-3 px-4 font-semibold">Registro</th>
-                      <th className="py-3 px-4 font-semibold">Contacto</th>
-                      <th className="py-3 px-4 font-semibold text-right">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#E6E2E8] text-xs">
-                    {advisors.map((adv) => (
-                      <tr key={adv.id} className="hover:bg-[#F9F8FA]">
-                        <td className="py-3 px-4 font-semibold text-[#161513]">{adv.name}</td>
-                        <td className="py-3 px-4 text-[#57534E]">{adv.role}</td>
-                        <td className="py-3 px-4 font-mono text-[#57534E]">{adv.license}</td>
-                        <td className="py-3 px-4 text-[#57534E]">
-                          <p>{adv.email}</p>
-                          <p className="font-mono text-[11px]">{adv.phone}</p>
-                        </td>
-                        <td className="py-3 px-4 text-right whitespace-nowrap">
-                          {confirmDeleteAdvId === adv.id ? (
-                            <div className="inline-flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  await onDeleteAdvisor(adv.id);
-                                  setConfirmDeleteAdvId(null);
-                                }}
-                                className="px-2 py-1 bg-[#DC2626] text-white text-[11px] font-semibold cursor-pointer"
-                              >
-                                Eliminar
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setConfirmDeleteAdvId(null)}
-                                className="px-2 py-1 border border-[#E6E2E8] text-[11px] cursor-pointer"
-                              >
-                                No
-                              </button>
-                            </div>
+              {/* Advisor Full Profile Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {advisors.map((adv) => {
+                  const safePhoto = sanitizeImageUrl(adv.avatarUrl);
+                  const assignedCount = properties.filter(
+                    (p) => p.advisorId === adv.id || p.advisor.name === adv.name
+                  ).length;
+
+                  return (
+                    <article
+                      key={adv.id}
+                      className="bg-white border border-[#E6E2E8] p-5 flex flex-col justify-between gap-4"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="w-20 h-20 shrink-0 border border-[#E6E2E8] bg-[#F9F5F9] overflow-hidden flex items-center justify-center">
+                          {safePhoto ? (
+                            <img
+                              src={safePhoto}
+                              alt={adv.name}
+                              referrerPolicy="no-referrer"
+                              className="w-full h-full object-cover"
+                            />
                           ) : (
-                            <div className="inline-flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => openAdvisorForm(adv)}
-                                className="px-2.5 py-1 border border-[#E6E2E8] font-medium hover:border-[#892B84] cursor-pointer"
-                              >
-                                Editar
-                              </button>
-                              {advisors.length > 1 && (
+                            <span className="font-editorial text-2xl font-medium text-[#892B84]">
+                              {getInitials(adv.name)}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <h3 className="font-sans text-sm font-semibold text-[#161513] leading-snug">
+                              {adv.name}
+                            </h3>
+                            <span
+                              className={`text-[10px] uppercase tracking-[0.12em] font-semibold px-2 py-0.5 shrink-0 ${
+                                adv.active
+                                  ? 'bg-[#F0FDF4] text-[#15803D]'
+                                  : 'bg-[#F5F5F4] text-[#57534E]'
+                              }`}
+                            >
+                              {adv.active ? 'Activa' : 'Inactiva'}
+                            </span>
+                          </div>
+                          <p className="text-xs font-medium text-[#892B84]">{adv.role}</p>
+                          {adv.license && (
+                            <p className="font-mono text-[11px] text-[#57534E]">{adv.license}</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {adv.bio && (
+                        <p className="text-xs leading-relaxed text-[#57534E] border-t border-[#E6E2E8] pt-3">
+                          {adv.bio}
+                        </p>
+                      )}
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-[#57534E] bg-[#F9F8FA] border border-[#E6E2E8] p-3">
+                        <div className="inline-flex items-center gap-2 min-w-0">
+                          <Mail className="w-3.5 h-3.5 text-[#892B84] shrink-0" />
+                          <span className="truncate">{adv.email}</span>
+                        </div>
+                        <div className="inline-flex items-center gap-2 min-w-0">
+                          <Phone className="w-3.5 h-3.5 text-[#892B84] shrink-0" />
+                          <span className="font-mono truncate">{adv.phone || 'Sin teléfono'}</span>
+                        </div>
+                        {adv.zone && (
+                          <div className="inline-flex items-center gap-2 min-w-0 sm:col-span-2">
+                            <MapPin className="w-3.5 h-3.5 text-[#892B84] shrink-0" />
+                            <span className="truncate">{adv.zone}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between gap-3 pt-1 border-t border-[#E6E2E8] text-xs">
+                        <span className="font-mono text-[11px] text-[#57534E] tabular-nums">
+                          {assignedCount} {assignedCount === 1 ? 'propiedad asignada' : 'propiedades asignadas'}
+                        </span>
+
+                        {session.role === 'administradora' && (
+                          <div>
+                            {confirmDeleteAdvId === adv.id ? (
+                              <div className="inline-flex items-center gap-2">
                                 <button
                                   type="button"
-                                  onClick={() => setConfirmDeleteAdvId(adv.id)}
-                                  aria-label={`Eliminar a ${adv.name}`}
-                                  className="p-1.5 text-[#57534E] hover:text-[#DC2626] cursor-pointer"
+                                  onClick={async () => {
+                                    setAdvError('');
+                                    try {
+                                      await onDeleteAdvisor(adv.id);
+                                      setConfirmDeleteAdvId(null);
+                                    } catch (err) {
+                                      setAdvError(
+                                        err instanceof Error
+                                          ? err.message
+                                          : 'No se pudo eliminar la asesora.'
+                                      );
+                                    }
+                                  }}
+                                  className="px-2.5 py-1 bg-[#DC2626] text-white text-[11px] font-semibold cursor-pointer"
                                 >
-                                  <Trash2 className="w-3.5 h-3.5" />
+                                  Eliminar
                                 </button>
-                              )}
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmDeleteAdvId(null)}
+                                  className="px-2.5 py-1 border border-[#E6E2E8] text-[11px] cursor-pointer"
+                                >
+                                  Cancelar
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="inline-flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => openAdvisorForm(adv)}
+                                  className="px-3 py-1.5 border border-[#E6E2E8] font-medium text-[#161513] hover:border-[#892B84] hover:text-[#892B84] cursor-pointer"
+                                >
+                                  Editar perfil y foto
+                                </button>
+                                {advisors.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setConfirmDeleteAdvId(adv.id)}
+                                    aria-label={`Eliminar a ${adv.name}`}
+                                    className="p-1.5 text-[#57534E] hover:text-[#DC2626] cursor-pointer"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -1261,6 +1552,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               onSave={onSaveSiteContent}
               onResetDefaults={onResetDefaults}
             />
+          )}
+
+          {/* VIEW 6: ADMIN PROFILE */}
+          {view === 'profile' && (
+            <AdminProfile session={session} onSaveProfile={onUpdateProfile} />
           )}
         </main>
       </div>

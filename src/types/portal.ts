@@ -45,6 +45,9 @@ export interface Advisor {
   license: string;
   email: string;
   phone: string;
+  zone?: string;
+  bio?: string;
+  avatarUrl?: string;
   active: boolean;
 }
 
@@ -182,6 +185,10 @@ export interface AdminSession {
   username: string;
   email: string;
   name: string;
+  whatsapp?: string;
+  jobTitle?: string;
+  bio?: string;
+  avatarUrl?: string;
   role: AdminRole;
   token: string;
 }

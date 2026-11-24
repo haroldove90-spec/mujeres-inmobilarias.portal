@@ -175,6 +175,36 @@ function toSupabaseAppointment(item: VisitAppointment) {
   };
 }
 
+function mapSupabaseAdvisor(r: Record<string, unknown>): Advisor {
+  return {
+    id: String(r.id ?? ''),
+    name: String(r.name ?? ''),
+    role: String(r.role ?? ''),
+    license: String(r.license ?? ''),
+    email: String(r.email ?? ''),
+    phone: String(r.phone ?? ''),
+    zone: r.zone ? String(r.zone) : '',
+    bio: r.bio ? String(r.bio) : '',
+    avatarUrl: r.avatar_url ? String(r.avatar_url) : '',
+    active: r.active !== false,
+  };
+}
+
+function toSupabaseAdvisor(item: Advisor) {
+  return {
+    id: item.id,
+    name: item.name,
+    role: item.role,
+    license: item.license,
+    email: item.email,
+    phone: item.phone,
+    zone: item.zone ?? '',
+    bio: item.bio ?? '',
+    avatar_url: item.avatarUrl ?? '',
+    active: item.active,
+  };
+}
+
 export async function loginAdminAccount(
   username: string,
   password: string
@@ -209,6 +239,10 @@ export async function loginAdminAccount(
       username: string;
       fullName: string;
       email: string;
+      whatsapp?: string;
+      jobTitle?: string;
+      bio?: string;
+      avatarUrl?: string;
       role: AdminRole;
     };
   } | null;
@@ -227,9 +261,76 @@ export async function loginAdminAccount(
       username: res.user.username,
       email: res.user.email,
       name: res.user.fullName,
+      whatsapp: res.user.whatsapp ?? '',
+      jobTitle: res.user.jobTitle ?? '',
+      bio: res.user.bio ?? '',
+      avatarUrl: res.user.avatarUrl ?? '',
       role: res.user.role,
       token: res.token,
     },
+  };
+}
+
+export async function updateAdminProfile(
+  session: AdminSession,
+  payload: {
+    fullName: string;
+    email: string;
+    whatsapp: string;
+    jobTitle: string;
+    bio: string;
+    avatarUrl: string;
+  }
+): Promise<AdminSession> {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase no está configurado para actualizar el perfil.');
+  }
+  if (!session.token) {
+    throw new Error('Tu sesión administrativa expiró. Vuelve a iniciar sesión.');
+  }
+
+  const { data, error } = await supabase.rpc('admin_update_own_profile', {
+    p_token: session.token,
+    p_full_name: payload.fullName.trim(),
+    p_email: payload.email.trim(),
+    p_whatsapp: payload.whatsapp.trim(),
+    p_job_title: payload.jobTitle.trim(),
+    p_bio: payload.bio.trim(),
+    p_avatar_url: payload.avatarUrl.trim(),
+  });
+
+  if (error) {
+    throw formatSupabaseError(error, 'actualizar tu perfil');
+  }
+
+  const res = data as {
+    ok?: boolean;
+    error?: string;
+    user?: {
+      id: string;
+      username: string;
+      fullName: string;
+      email: string;
+      whatsapp?: string;
+      jobTitle?: string;
+      bio?: string;
+      avatarUrl?: string;
+      role: AdminRole;
+    };
+  } | null;
+
+  if (!res?.ok || !res.user) {
+    throw new Error(res?.error ?? 'No se pudo actualizar el perfil en Supabase.');
+  }
+
+  return {
+    ...session,
+    name: res.user.fullName,
+    email: res.user.email,
+    whatsapp: res.user.whatsapp ?? '',
+    jobTitle: res.user.jobTitle ?? '',
+    bio: res.user.bio ?? '',
+    avatarUrl: res.user.avatarUrl ?? '',
   };
 }
 
@@ -459,7 +560,7 @@ export async function loadPortalData(adminToken?: string): Promise<{
           : localProps,
       advisors:
         Array.isArray(advRes.data) && advRes.data.length > 0
-          ? (advRes.data as Advisor[])
+          ? advRes.data.map((row) => mapSupabaseAdvisor(row as Record<string, unknown>))
           : localAdvisors,
       leads:
         Array.isArray(leadsRes.data) && leadsRes.data.length > 0
@@ -538,7 +639,7 @@ export async function upsertAdvisor(
   if (isSupabaseConfigured && supabase && adminToken) {
     const { error } = await supabase.rpc('admin_upsert_advisor', {
       p_token: adminToken,
-      p_item: advisor,
+      p_item: toSupabaseAdvisor(advisor),
     });
     if (error) {
       throw formatSupabaseError(error, 'guardar la asesora');

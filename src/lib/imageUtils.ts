@@ -41,3 +41,31 @@ export function compressImageFile(
     reader.readAsDataURL(file);
   });
 }
+
+const SAFE_DATA_IMAGE_RE = /^data:image\/(jpeg|jpg|png|webp|gif);base64,[a-z0-9+/=]+$/i;
+
+export function sanitizeImageUrl(url?: string | null): string {
+  const trimmed = (url ?? '').trim();
+  if (!trimmed) return '';
+  if (SAFE_DATA_IMAGE_RE.test(trimmed)) return trimmed;
+  if (trimmed.startsWith('/') && !trimmed.startsWith('//')) return trimmed;
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+      return parsed.toString();
+    }
+  } catch {
+    return '';
+  }
+  return '';
+}
+
+export function getInitials(name?: string | null): string {
+  const parts = (name ?? '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (parts.length === 0) return 'MI';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+}

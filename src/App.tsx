@@ -43,6 +43,7 @@ import {
   removeProperty,
   resetAllPortalData,
   saveSiteContent,
+  updateAdminProfile,
   updateLead,
   upsertAdvisor,
   upsertAppointment,
@@ -213,6 +214,19 @@ export default function App() {
     const token = adminSession?.token;
     setAdminSession(null);
     await logoutPortalToken(token);
+  };
+
+  const handleUpdateAdminProfile = async (updates: {
+    fullName: string;
+    email: string;
+    whatsapp: string;
+    jobTitle: string;
+    bio: string;
+    avatarUrl: string;
+  }) => {
+    if (!adminSession) return;
+    const updated = await updateAdminProfile(adminSession, updates);
+    setAdminSession(updated);
   };
 
   const handleSaveProperty = async (item: PropertyListing) => {
@@ -397,6 +411,7 @@ export default function App() {
         siteContent={siteContent}
         onBackToPortal={backToPortal}
         onLogout={handleAdminLogout}
+        onUpdateProfile={handleUpdateAdminProfile}
         onSaveProperty={handleSaveProperty}
         onDeleteProperty={handleDeleteProperty}
         onUpdateLead={handleUpdateLead}
