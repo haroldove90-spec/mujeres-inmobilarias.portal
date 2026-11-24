@@ -6,6 +6,7 @@ import {
   Check,
   Edit3,
   FileText,
+  Image as ImageIcon,
   Inbox,
   LayoutDashboard,
   LogOut,
@@ -34,8 +35,9 @@ import { BrandLogo } from '../BrandLogo';
 import { PropertyEditorModal } from './PropertyEditorModal';
 import { AdminCmsEditor } from './AdminCmsEditor';
 import { AdminAgenda } from './AdminAgenda';
+import { AdminPhotosManager } from './AdminPhotosManager';
 
-type AdminView = 'overview' | 'agenda' | 'properties' | 'leads' | 'advisors' | 'cms';
+type AdminView = 'overview' | 'agenda' | 'photos' | 'properties' | 'leads' | 'advisors' | 'cms';
 
 interface AdminDashboardProps {
   session: AdminSession;
@@ -168,6 +170,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     [
       { id: 'overview', label: 'Resumen', icon: <LayoutDashboard className="w-4 h-4" /> },
       { id: 'agenda', label: 'Agenda de visitas', icon: <Calendar className="w-4 h-4" /> },
+      { id: 'photos', label: 'Fotos y Portada', icon: <ImageIcon className="w-4 h-4" /> },
       { id: 'properties', label: 'Inmuebles y precios', icon: <Building2 className="w-4 h-4" /> },
       { id: 'leads', label: 'Prospectos y visitas', icon: <Inbox className="w-4 h-4" /> },
       {
@@ -180,7 +183,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         id: 'cms',
         label: 'Contenidos del portal',
         icon: <FileText className="w-4 h-4" />,
-        adminOnly: true,
       },
     ];
 
@@ -439,6 +441,50 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <button
+                  type="button"
+                  onClick={() => setView('photos')}
+                  className="bg-white border border-[#E6E2E8] hover:border-[#892B84] p-4 text-left transition-colors cursor-pointer"
+                >
+                  <p className="text-xs font-semibold text-[#892B84] inline-flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5" />
+                    <span>Fotos y Portada</span>
+                  </p>
+                  <p className="mt-1 text-xs text-[#57534E]">
+                    Cambia la foto principal del portal, galería de portada y fotos de inmuebles.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setView('cms')}
+                  className="bg-white border border-[#E6E2E8] hover:border-[#892B84] p-4 text-left transition-colors cursor-pointer"
+                >
+                  <p className="text-xs font-semibold text-[#892B84] inline-flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>Textos, Títulos y WhatsApp</span>
+                  </p>
+                  <p className="mt-1 text-xs text-[#57534E]">
+                    Edita título, subtítulo, bienvenida, secciones, teléfonos y botón WhatsApp.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setView('agenda')}
+                  className="bg-white border border-[#E6E2E8] hover:border-[#892B84] p-4 text-left transition-colors cursor-pointer"
+                >
+                  <p className="text-xs font-semibold text-[#892B84] inline-flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>Agenda de Visitas</span>
+                  </p>
+                  <p className="mt-1 text-xs text-[#57534E]">
+                    Programa citas en calendario, descarga al móvil (.ics) y activa alertas.
+                  </p>
+                </button>
+              </div>
+
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 {/* Recent Leads */}
                 <div className="lg:col-span-7 bg-white border border-[#E6E2E8]">
@@ -549,6 +595,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               onClearPrefill={() => setAgendaPrefill(null)}
               onSaveAppointment={onSaveAppointment}
               onDeleteAppointment={onDeleteAppointment}
+            />
+          )}
+
+          {/* VIEW 2B: PHOTOS & COVER MANAGER */}
+          {view === 'photos' && (
+            <AdminPhotosManager
+              siteContent={siteContent}
+              properties={properties}
+              onSaveSiteContent={onSaveSiteContent}
+              onSaveProperty={onSaveProperty}
             />
           )}
 

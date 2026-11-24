@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Check, MessageCircle, Plus, RotateCcw, Trash2, Upload } from 'lucide-react';
 import { SiteContent } from '../../types/portal';
 import { buildWhatsAppHref } from '../WhatsAppButton';
+import { compressImageFile } from '../../lib/imageUtils';
 
 interface AdminCmsEditorProps {
   content: SiteContent;
@@ -18,7 +19,9 @@ export const AdminCmsEditor: React.FC<AdminCmsEditorProps> = ({
 }) => {
   const [draft, setDraft] = useState<SiteContent>(content);
   const [activeTab, setActiveTab] = useState<CmsTab>('portada');
+  const [saving, setSaving] = useState(false);
   const [savedNotice, setSavedNotice] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [confirmReset, setConfirmReset] = useState(false);
 
   useEffect(() => {
@@ -27,21 +30,44 @@ export const AdminCmsEditor: React.FC<AdminCmsEditorProps> = ({
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onSave(draft);
-    setSavedNotice(true);
-    window.setTimeout(() => setSavedNotice(false), 2500);
+    setSaveError('');
+    setSavedNotice(false);
+    setSaving(true);
+    try {
+      const nextGallery =
+        draft.heroGallery && draft.heroGallery.length > 0
+          ? [draft.heroImage, ...draft.heroGallery.filter((u) => u && u !== draft.heroImage)]
+          : [draft.heroImage];
+      await onSave({
+        ...draft,
+        heroGallery: nextGallery.filter(Boolean),
+      });
+      setSavedNotice(true);
+      window.setTimeout(() => setSavedNotice(false), 3000);
+    } catch (err) {
+      setSaveError(
+        err instanceof Error ? err.message : 'No se pudieron guardar los cambios en Supabase.'
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleHeroImageFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleHeroImageFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setDraft((prev) => ({ ...prev, heroImage: reader.result as string }));
-      }
-    };
-    reader.readAsDataURL(file);
+    setSaveError('');
+    try {
+      const compressed = await compressImageFile(file);
+      setDraft((prev) => ({
+        ...prev,
+        heroImage: compressed,
+        heroGallery: [compressed, ...(prev.heroGallery ?? []).filter((u) => u !== compressed)],
+      }));
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'No se pudo cargar la imagen.');
+    }
+    e.target.value = '';
   };
 
   const toggleSection = (key: keyof SiteContent['sectionsEnabled']) => {
@@ -119,13 +145,26 @@ export const AdminCmsEditor: React.FC<AdminCmsEditorProps> = ({
 
           <button
             type="submit"
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#892B84] text-white text-xs font-semibold hover:bg-[#6E206A] transition-colors cursor-pointer"
+            disabled={saving}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#892B84] text-white text-xs font-semibold hover:bg-[#6E206A] transition-colors disabled:opacity-60 cursor-pointer"
           >
             {savedNotice ? <Check className="w-3.5 h-3.5" /> : null}
-            <span>{savedNotice ? 'Cambios publicados' : 'Guardar y publicar'}</span>
+            <span>
+              {saving
+                ? 'Guardando...'
+                : savedNotice
+                ? 'Guardado en Supabase'
+                : 'Guardar y publicar'}
+            </span>
           </button>
         </div>
       </div>
+
+      {saveError && (
+        <div className="p-3.5 bg-[#FEF2F2] border border-[#FECACA] text-xs text-[#B91C1C]">
+          {saveError}
+        </div>
+      )}
 
       {/* Tab 1: Portada */}
       {activeTab === 'portada' && (

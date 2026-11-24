@@ -141,6 +141,7 @@ export interface SiteContent {
   heroTitle: string;
   heroSubtitle: string;
   heroImage: string;
+  heroGallery: string[];
   heroImageCaptionZone: string;
   heroImageCaptionTitle: string;
   headerCtaLabel: string;

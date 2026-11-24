@@ -148,6 +148,11 @@ create policy "Public read site_content" on public.site_content
 create policy "Public insert leads" on public.leads
   for insert with check (true);
 
+-- Permisos de acceso API (indispensables para que anon/authenticated lean el portal público)
+grant usage on schema public to anon, authenticated;
+grant select on public.properties, public.advisors, public.site_content to anon, authenticated;
+grant insert on public.leads to anon, authenticated;
+
 -- 8. Funciones seguras de autenticación y administración (SECURITY DEFINER)
 
 create or replace function public.create_admin_account(
@@ -549,7 +554,7 @@ security definer
 set search_path = public, extensions
 as $$
 begin
-  perform public.require_admin_role(p_token, true);
+  perform public.require_admin_role(p_token, false);
 
   insert into public.site_content (id, content, updated_at)
   values ('main', p_content, now())
@@ -636,3 +641,18 @@ begin
   delete from public.appointments where id = p_id;
 end;
 $$;
+
+grant execute on function public.login_portal_user(text, text, text) to anon, authenticated;
+grant execute on function public.logout_portal_user(text) to anon, authenticated;
+grant execute on function public.admin_list_properties(text) to anon, authenticated;
+grant execute on function public.admin_upsert_property(text, jsonb) to anon, authenticated;
+grant execute on function public.admin_delete_property(text, text) to anon, authenticated;
+grant execute on function public.admin_list_advisors(text) to anon, authenticated;
+grant execute on function public.admin_upsert_advisor(text, jsonb) to anon, authenticated;
+grant execute on function public.admin_delete_advisor(text, text) to anon, authenticated;
+grant execute on function public.admin_list_leads(text) to anon, authenticated;
+grant execute on function public.admin_update_lead(text, uuid, text, text, text) to anon, authenticated;
+grant execute on function public.admin_save_site_content(text, jsonb) to anon, authenticated;
+grant execute on function public.admin_list_appointments(text) to anon, authenticated;
+grant execute on function public.admin_upsert_appointment(text, jsonb) to anon, authenticated;
+grant execute on function public.admin_delete_appointment(text, text) to anon, authenticated;

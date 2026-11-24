@@ -365,14 +365,35 @@ export async function logoutPortalToken(token?: string): Promise<void> {
 
 function mergeSiteContent(partial: Partial<SiteContent> | null | undefined): SiteContent {
   if (!partial) return DEFAULT_SITE_CONTENT;
+  const heroImage = partial.heroImage || DEFAULT_SITE_CONTENT.heroImage;
+  const rawGallery = Array.isArray(partial.heroGallery) ? partial.heroGallery.filter(Boolean) : [];
+  const heroGallery =
+    rawGallery.length > 0
+      ? rawGallery.includes(heroImage)
+        ? rawGallery
+        : [heroImage, ...rawGallery]
+      : [heroImage];
+
   return {
     ...DEFAULT_SITE_CONTENT,
     ...partial,
+    heroImage,
+    heroGallery,
     sectionsEnabled: {
       ...DEFAULT_SITE_CONTENT.sectionsEnabled,
       ...(partial.sectionsEnabled ?? {}),
     },
   };
+}
+
+function formatSupabaseError(error: { message?: string; code?: string } | null, action: string): Error {
+  const msg = error?.message ?? 'Error desconocido en Supabase';
+  if (error?.code === '42501' || /permission denied/i.test(msg)) {
+    return new Error(
+      `Permisos pendientes en Supabase al ${action}. Ejecuta el SQL actualizado en el SQL Editor de tu proyecto.`
+    );
+  }
+  return new Error(`No se pudo ${action} en Supabase: ${msg}`);
 }
 
 export async function loadPortalData(adminToken?: string): Promise<{
@@ -471,18 +492,21 @@ export async function upsertProperty(
   currentList: PropertyListing[],
   adminToken?: string
 ): Promise<PropertyListing[]> {
+  if (isSupabaseConfigured && supabase && adminToken) {
+    const { error } = await supabase.rpc('admin_upsert_property', {
+      p_token: adminToken,
+      p_item: toSupabaseProperty(item),
+    });
+    if (error) {
+      throw formatSupabaseError(error, 'guardar el inmueble');
+    }
+  }
+
   const exists = currentList.some((p) => p.id === item.id);
   const next = exists
     ? currentList.map((p) => (p.id === item.id ? item : p))
     : [item, ...currentList];
   writeLocal(KEYS.properties, next);
-
-  if (isSupabaseConfigured && supabase && adminToken) {
-    await supabase.rpc('admin_upsert_property', {
-      p_token: adminToken,
-      p_item: toSupabaseProperty(item),
-    });
-  }
   return next;
 }
 
@@ -491,15 +515,18 @@ export async function removeProperty(
   currentList: PropertyListing[],
   adminToken?: string
 ): Promise<PropertyListing[]> {
-  const next = currentList.filter((p) => p.id !== id);
-  writeLocal(KEYS.properties, next);
-
   if (isSupabaseConfigured && supabase && adminToken) {
-    await supabase.rpc('admin_delete_property', {
+    const { error } = await supabase.rpc('admin_delete_property', {
       p_token: adminToken,
       p_id: id,
     });
+    if (error) {
+      throw formatSupabaseError(error, 'eliminar el inmueble');
+    }
   }
+
+  const next = currentList.filter((p) => p.id !== id);
+  writeLocal(KEYS.properties, next);
   return next;
 }
 
@@ -508,18 +535,21 @@ export async function upsertAdvisor(
   currentList: Advisor[],
   adminToken?: string
 ): Promise<Advisor[]> {
+  if (isSupabaseConfigured && supabase && adminToken) {
+    const { error } = await supabase.rpc('admin_upsert_advisor', {
+      p_token: adminToken,
+      p_item: advisor,
+    });
+    if (error) {
+      throw formatSupabaseError(error, 'guardar la asesora');
+    }
+  }
+
   const exists = currentList.some((a) => a.id === advisor.id);
   const next = exists
     ? currentList.map((a) => (a.id === advisor.id ? advisor : a))
     : [...currentList, advisor];
   writeLocal(KEYS.advisors, next);
-
-  if (isSupabaseConfigured && supabase && adminToken) {
-    await supabase.rpc('admin_upsert_advisor', {
-      p_token: adminToken,
-      p_item: advisor,
-    });
-  }
   return next;
 }
 
@@ -528,15 +558,18 @@ export async function removeAdvisor(
   currentList: Advisor[],
   adminToken?: string
 ): Promise<Advisor[]> {
-  const next = currentList.filter((a) => a.id !== id);
-  writeLocal(KEYS.advisors, next);
-
   if (isSupabaseConfigured && supabase && adminToken) {
-    await supabase.rpc('admin_delete_advisor', {
+    const { error } = await supabase.rpc('admin_delete_advisor', {
       p_token: adminToken,
       p_id: id,
     });
+    if (error) {
+      throw formatSupabaseError(error, 'eliminar la asesora');
+    }
   }
+
+  const next = currentList.filter((a) => a.id !== id);
+  writeLocal(KEYS.advisors, next);
   return next;
 }
 
@@ -579,18 +612,21 @@ export async function updateLead(
   currentList: LeadRecord[],
   adminToken?: string
 ): Promise<LeadRecord[]> {
-  const next = currentList.map((item) => (item.id === lead.id ? lead : item));
-  writeLocal(KEYS.leads, next);
-
   if (isSupabaseConfigured && supabase && adminToken && UUID_RE.test(lead.id)) {
-    await supabase.rpc('admin_update_lead', {
+    const { error } = await supabase.rpc('admin_update_lead', {
       p_token: adminToken,
       p_id: lead.id,
       p_status: lead.status,
       p_internal_notes: lead.internalNotes,
       p_assigned_advisor: lead.assignedAdvisor,
     });
+    if (error) {
+      throw formatSupabaseError(error, 'actualizar el prospecto');
+    }
   }
+
+  const next = currentList.map((item) => (item.id === lead.id ? lead : item));
+  writeLocal(KEYS.leads, next);
   return next;
 }
 
@@ -598,13 +634,19 @@ export async function saveSiteContent(
   content: SiteContent,
   adminToken?: string
 ): Promise<void> {
-  writeLocal(KEYS.siteContent, content);
-  if (isSupabaseConfigured && supabase && adminToken) {
-    await supabase.rpc('admin_save_site_content', {
+  if (isSupabaseConfigured && supabase) {
+    if (!adminToken) {
+      throw new Error('Tu sesión administrativa expiró. Vuelve a iniciar sesión para guardar en Supabase.');
+    }
+    const { error } = await supabase.rpc('admin_save_site_content', {
       p_token: adminToken,
       p_content: content,
     });
+    if (error) {
+      throw formatSupabaseError(error, 'guardar los contenidos del portal');
+    }
   }
+  writeLocal(KEYS.siteContent, content);
 }
 
 export async function upsertAppointment(
@@ -612,19 +654,22 @@ export async function upsertAppointment(
   currentList: VisitAppointment[],
   adminToken?: string
 ): Promise<VisitAppointment[]> {
+  if (isSupabaseConfigured && supabase && adminToken) {
+    const { error } = await supabase.rpc('admin_upsert_appointment', {
+      p_token: adminToken,
+      p_item: toSupabaseAppointment(item),
+    });
+    if (error) {
+      throw formatSupabaseError(error, 'guardar la cita en agenda');
+    }
+  }
+
   const exists = currentList.some((a) => a.id === item.id);
   const next = (exists
     ? currentList.map((a) => (a.id === item.id ? item : a))
     : [...currentList, item]
   ).sort((a, b) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`));
   writeLocal(KEYS.appointments, next);
-
-  if (isSupabaseConfigured && supabase && adminToken) {
-    await supabase.rpc('admin_upsert_appointment', {
-      p_token: adminToken,
-      p_item: toSupabaseAppointment(item),
-    });
-  }
   return next;
 }
 
@@ -633,15 +678,18 @@ export async function removeAppointment(
   currentList: VisitAppointment[],
   adminToken?: string
 ): Promise<VisitAppointment[]> {
-  const next = currentList.filter((a) => a.id !== id);
-  writeLocal(KEYS.appointments, next);
-
   if (isSupabaseConfigured && supabase && adminToken) {
-    await supabase.rpc('admin_delete_appointment', {
+    const { error } = await supabase.rpc('admin_delete_appointment', {
       p_token: adminToken,
       p_id: id,
     });
+    if (error) {
+      throw formatSupabaseError(error, 'eliminar la cita de agenda');
+    }
   }
+
+  const next = currentList.filter((a) => a.id !== id);
+  writeLocal(KEYS.appointments, next);
   return next;
 }
 

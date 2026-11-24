@@ -5,6 +5,8 @@ import {
   Building2,
   Check,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Lock,
   Mail,
   MapPin,
@@ -105,8 +107,9 @@ export default function App() {
   const [heroOp, setHeroOp] = useState<OperationFilter>('Todas');
   const [heroRegion, setHeroRegion] = useState<RegionFilter>('Todas');
 
-  // Hero image resilience
+  // Hero image resilience & gallery carousel
   const [heroImgError, setHeroImgError] = useState(false);
+  const [heroSlideIndex, setHeroSlideIndex] = useState(0);
 
   // Active property modal
   const [selectedProperty, setSelectedProperty] = useState<PropertyListing | null>(null);
@@ -148,9 +151,18 @@ export default function App() {
     };
   }, []);
 
+  const heroSlides = useMemo(() => {
+    const raw =
+      siteContent.heroGallery && siteContent.heroGallery.length > 0
+        ? siteContent.heroGallery
+        : [siteContent.heroImage || HERO_IMAGE];
+    return raw.filter(Boolean);
+  }, [siteContent.heroGallery, siteContent.heroImage]);
+
   useEffect(() => {
     setHeroImgError(false);
-  }, [siteContent.heroImage]);
+    setHeroSlideIndex(0);
+  }, [siteContent.heroImage, siteContent.heroGallery]);
 
   useEffect(() => {
     const handleOutside = (e: MouseEvent) => {
@@ -733,7 +745,7 @@ export default function App() {
                 <div className="relative flex-1 min-h-[260px] sm:min-h-[360px] lg:min-h-[460px] bg-[#F9F8FA] border border-[#E6E2E8] overflow-hidden">
                   {!heroImgError ? (
                     <img
-                      src={siteContent.heroImage || HERO_IMAGE}
+                      src={heroSlides[heroSlideIndex] || siteContent.heroImage || HERO_IMAGE}
                       alt={siteContent.heroImageCaptionTitle}
                       referrerPolicy="no-referrer"
                       onError={() => setHeroImgError(true)}
@@ -745,6 +757,37 @@ export default function App() {
                       <span className="font-editorial text-2xl text-[#161513]">
                         Mujer Inmobiliaria &amp; Asociadas
                       </span>
+                    </div>
+                  )}
+                  {heroSlides.length > 1 && (
+                    <div className="absolute top-4 right-4 flex items-center gap-1.5 bg-[#161513]/75 text-white px-2 py-1">
+                      <button
+                        type="button"
+                        aria-label="Foto anterior de portada"
+                        onClick={() => {
+                          setHeroImgError(false);
+                          setHeroSlideIndex((prev) =>
+                            prev === 0 ? heroSlides.length - 1 : prev - 1
+                          );
+                        }}
+                        className="p-1 hover:text-[#D88FD4] cursor-pointer"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="font-mono text-[11px] tabular-nums px-1">
+                        {heroSlideIndex + 1}/{heroSlides.length}
+                      </span>
+                      <button
+                        type="button"
+                        aria-label="Siguiente foto de portada"
+                        onClick={() => {
+                          setHeroImgError(false);
+                          setHeroSlideIndex((prev) => (prev + 1) % heroSlides.length);
+                        }}
+                        className="p-1 hover:text-[#D88FD4] cursor-pointer"
+                      >
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   )}
                   <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6">

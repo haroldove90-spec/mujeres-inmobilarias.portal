@@ -355,6 +355,7 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
   heroSubtitle:
     'Firma mexicana dirigida por mujeres especialistas en compra, venta, renta y desarrollos. Acompañamiento gratuito y transparente desde la valuación hasta la firma notarial.',
   heroImage: HERO_IMAGE,
+  heroGallery: [HERO_IMAGE],
   heroImageCaptionZone: 'Cumbres del Lago · Juriquilla, Querétaro',
   heroImageCaptionTitle: 'Residencia Cantilever & Espejo de Agua',
   headerCtaLabel: 'Agendar Asesoría',

@@ -8,6 +8,7 @@ import {
   PropertyStatus,
   RegionState,
 } from '../../types/portal';
+import { compressImageFile } from '../../lib/imageUtils';
 
 interface PropertyEditorModalProps {
   isOpen: boolean;
@@ -106,19 +107,18 @@ export const PropertyEditorModal: React.FC<PropertyEditorModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-
-    Array.from(files).forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (typeof reader.result === 'string') {
-          setGallery((prev) => [...prev, reader.result as string]);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+    setError('');
+    try {
+      const compressed = await Promise.all(
+        Array.from(files).map((file) => compressImageFile(file))
+      );
+      setGallery((prev) => [...prev, ...compressed]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudieron subir las fotografías.');
+    }
     e.target.value = '';
   };
 
@@ -210,6 +210,10 @@ export const PropertyEditorModal: React.FC<PropertyEditorModalProps> = ({
     try {
       await onSave(record);
       onClose();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'No se pudo guardar el inmueble en Supabase.'
+      );
     } finally {
       setSaving(false);
     }
