@@ -398,20 +398,20 @@ export default function App() {
 
       {/* Strict 3-Zone Top Bar */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-xs border-b border-[#E6E2E8]">
-        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 h-16 sm:h-[72px] flex items-center justify-between gap-3 md:gap-8">
+        <div className="max-w-[1280px] mx-auto px-3 sm:px-6 lg:px-10 h-16 sm:h-[72px] flex items-center justify-between gap-2 sm:gap-4 lg:gap-6">
           {/* Zone 1: Brand Logo */}
           <a
             href="#inicio"
             aria-label="Mujer Inmobiliaria & Asociadas — Inicio"
             className="inline-flex items-center min-w-0 shrink-0 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#892B84]"
           >
-            <BrandLogo className="h-10 sm:h-12 w-auto" />
+            <BrandLogo className="h-9 sm:h-11 w-auto" />
           </a>
 
           {/* Zone 2: 5 Nav Items: Inicio, Nosotras (dropdown), Servicios, Inmuebles, Contacto */}
           <nav
             aria-label="Navegación principal"
-            className="hidden md:flex items-center gap-6 lg:gap-7 text-sm font-medium text-[#57534E]"
+            className="hidden lg:flex items-center gap-5 xl:gap-7 text-sm font-medium text-[#57534E]"
           >
             <a
               href="#inicio"
@@ -488,13 +488,13 @@ export default function App() {
           </nav>
 
           {/* Zone 3: Install App + Admin + Primary Action + Mobile Menu Trigger */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             <PWAInstallButton variant="header" />
             <button
               type="button"
               onClick={openAdmin}
               aria-label="Acceso Administración"
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 border border-[#E6E2E8] bg-white text-[#161513] text-xs font-medium hover:border-[#892B84] hover:text-[#892B84] transition-colors whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#892B84]"
+              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 border border-[#E6E2E8] bg-white text-[#161513] text-xs font-semibold hover:border-[#892B84] hover:text-[#892B84] transition-colors whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#892B84]"
             >
               <Lock className="w-3.5 h-3.5 text-[#892B84]" />
               <span>Admin</span>
@@ -502,7 +502,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => scrollToSection('contacto')}
-              className="hidden sm:inline-flex items-center px-4 py-2 bg-[#892B84] text-white text-xs font-semibold hover:bg-[#6E206A] transition-colors whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#892B84]"
+              className="hidden sm:inline-flex items-center px-3.5 lg:px-4 py-2 bg-[#892B84] text-white text-xs font-semibold hover:bg-[#6E206A] transition-colors whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#892B84]"
             >
               Agendar Asesoría
             </button>
@@ -511,7 +511,7 @@ export default function App() {
               onClick={() => setMobileMenuOpen((prev) => !prev)}
               aria-expanded={mobileMenuOpen}
               aria-label={mobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
-              className="md:hidden w-10 h-10 inline-flex items-center justify-center border border-[#E6E2E8] bg-white text-[#161513] hover:border-[#892B84] hover:text-[#892B84] cursor-pointer"
+              className="lg:hidden w-9 h-9 sm:w-10 sm:h-10 inline-flex items-center justify-center border border-[#E6E2E8] bg-white text-[#161513] hover:border-[#892B84] hover:text-[#892B84] cursor-pointer"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -520,7 +520,7 @@ export default function App() {
 
         {/* Mobile Drawer */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-[#E6E2E8] bg-white px-4 sm:px-6 py-4 space-y-3">
+          <div className="lg:hidden border-t border-[#E6E2E8] bg-white px-4 sm:px-6 py-4 space-y-3">
             <div className="flex flex-col space-y-1 text-sm font-medium text-[#161513]">
               <a
                 href="#inicio"

@@ -11,14 +11,14 @@ interface AdminLoginProps {
 
 export const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin, onBackToPortal }) => {
   const [email, setEmail] = useState('direccion@mujerinmobiliariayasociadas.com');
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState(isSupabaseConfigured ? '' : 'admin2026');
   const [role, setRole] = useState<AdminRole>('administradora');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.includes('@') || password.trim().length < 4) {
+    if (!email.includes('@') || (isSupabaseConfigured && password.trim().length < 4)) {
       setError('Ingresa un correo válido y una contraseña de al menos 4 caracteres.');
       return;
     }
