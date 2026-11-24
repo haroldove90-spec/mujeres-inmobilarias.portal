@@ -298,13 +298,24 @@ export const DEFAULT_LEADS: LeadRecord[] = [
 ];
 
 export const DEFAULT_SITE_CONTENT: SiteContent = {
+  sectionsEnabled: {
+    capabilities: true,
+    nosotras: true,
+    servicios: true,
+    inmuebles: true,
+    contacto: true,
+  },
   heroEyebrow: 'Santiago de Querétaro · Yucatán · Estado de México',
+  heroWelcomeMessage: 'Bienvenida a Mujer Inmobiliaria & Asociadas · Asesoría patrimonial gratuita',
   heroTitle: 'Patrimonio inmobiliario con criterio arquitectónico y certeza jurídica.',
   heroSubtitle:
     'Firma mexicana dirigida por mujeres especialistas en compra, venta, renta y desarrollos. Acompañamiento gratuito y transparente desde la valuación hasta la firma notarial.',
   heroImage: HERO_IMAGE,
   heroImageCaptionZone: 'Cumbres del Lago · Juriquilla, Querétaro',
   heroImageCaptionTitle: 'Residencia Cantilever & Espejo de Agua',
+  headerCtaLabel: 'Agendar Asesoría',
+  heroPrimaryCtaLabel: 'Explorar inmuebles',
+  heroSecondaryCtaLabel: 'Conocer servicios',
   capabilities: [
     {
       number: '01',
@@ -419,6 +430,7 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
   servicesHeading: 'Soluciones integrales para compra, venta, renta y desarrollos',
   servicesSubheading:
     'Asesoría gratuita inicial combinada con representación comercial, valuación técnica y blindaje jurídico.',
+  serviceCtaLabel: 'Solicitar este servicio',
   servicesList: [
     {
       number: '01.',
@@ -465,15 +477,26 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
       contactIntent: 'Inversión en terrenos y desarrollos',
     },
   ],
+  inmueblesKicker: 'Inmuebles · Portafolio Verificado',
+  inmueblesHeading: 'Propiedades seleccionadas',
   contactKicker: 'Contacto · Atención Personalizada',
   contactHeading: 'Conversa con una socia asesora sin costo inicial',
   contactSubtitle:
     'Ya sea que busques adquirir patrimonio, comercializar una propiedad o evaluar tierra para desarrollo, asignamos a una especialista según tu plaza y objetivo.',
+  contactPrivacyNote: 'Asesoría confidencial · Sin compromiso de exclusividad previa.',
+  contactSubmitLabel: 'Solicitar asesoría gratuita',
   officeTitle: 'Oficina Matriz Querétaro',
   officeAddress:
     'Av. Corregidora Nte. 1116, Piso 9, Arboledas, Santiago de Querétaro, Qro.',
   officePhone: '+52 (442) 275-9370',
+  officeSecondaryPhone: '+52 56 2337 3050',
   officeEmail: 'contacto@mujerinmobiliariayasociadas.com',
+  officeSecondaryEmail: '',
+  whatsappEnabled: true,
+  whatsappNumber: '525623373050',
+  whatsappLabel: 'WhatsApp',
+  whatsappMessage: 'Qué tal, me gustaría informes sobre un inmueble.',
+  footerText: '© 2026 Mujer Inmobiliaria & Asociadas. Todos los derechos reservados.',
 };
 
 export function formatMxn(amount: number): string {

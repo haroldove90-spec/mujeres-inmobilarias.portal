@@ -314,6 +314,18 @@ export async function logoutPortalToken(token?: string): Promise<void> {
   }
 }
 
+function mergeSiteContent(partial: Partial<SiteContent> | null | undefined): SiteContent {
+  if (!partial) return DEFAULT_SITE_CONTENT;
+  return {
+    ...DEFAULT_SITE_CONTENT,
+    ...partial,
+    sectionsEnabled: {
+      ...DEFAULT_SITE_CONTENT.sectionsEnabled,
+      ...(partial.sectionsEnabled ?? {}),
+    },
+  };
+}
+
 export async function loadPortalData(adminToken?: string): Promise<{
   properties: PropertyListing[];
   advisors: Advisor[];
@@ -323,7 +335,9 @@ export async function loadPortalData(adminToken?: string): Promise<{
   const localProps = readLocal(KEYS.properties, DEFAULT_PROPERTIES);
   const localAdvisors = readLocal(KEYS.advisors, DEFAULT_ADVISORS);
   const localLeads = readLocal(KEYS.leads, DEFAULT_LEADS);
-  const localContent = readLocal(KEYS.siteContent, DEFAULT_SITE_CONTENT);
+  const localContent = mergeSiteContent(
+    readLocal<Partial<SiteContent>>(KEYS.siteContent, DEFAULT_SITE_CONTENT)
+  );
 
   if (!isSupabaseConfigured || !supabase) {
     return {
@@ -377,7 +391,7 @@ export async function loadPortalData(adminToken?: string): Promise<{
           : localLeads,
       siteContent:
         cmsRes.data && cmsRes.data.content
-          ? (cmsRes.data.content as SiteContent)
+          ? mergeSiteContent(cmsRes.data.content as Partial<SiteContent>)
           : localContent,
     };
   } catch {

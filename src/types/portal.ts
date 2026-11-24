@@ -103,13 +103,26 @@ export interface CapabilityItem {
   description: string;
 }
 
+export interface SectionVisibility {
+  capabilities: boolean;
+  nosotras: boolean;
+  servicios: boolean;
+  inmuebles: boolean;
+  contacto: boolean;
+}
+
 export interface SiteContent {
+  sectionsEnabled: SectionVisibility;
   heroEyebrow: string;
+  heroWelcomeMessage: string;
   heroTitle: string;
   heroSubtitle: string;
   heroImage: string;
   heroImageCaptionZone: string;
   heroImageCaptionTitle: string;
+  headerCtaLabel: string;
+  heroPrimaryCtaLabel: string;
+  heroSecondaryCtaLabel: string;
   capabilities: CapabilityItem[];
   nosotrasKicker: string;
   nosotrasHeading: string;
@@ -118,14 +131,26 @@ export interface SiteContent {
   servicesKicker: string;
   servicesHeading: string;
   servicesSubheading: string;
+  serviceCtaLabel: string;
   servicesList: ServiceItem[];
+  inmueblesKicker: string;
+  inmueblesHeading: string;
   contactKicker: string;
   contactHeading: string;
   contactSubtitle: string;
+  contactPrivacyNote: string;
+  contactSubmitLabel: string;
   officeTitle: string;
   officeAddress: string;
   officePhone: string;
+  officeSecondaryPhone: string;
   officeEmail: string;
+  officeSecondaryEmail: string;
+  whatsappEnabled: boolean;
+  whatsappNumber: string;
+  whatsappLabel: string;
+  whatsappMessage: string;
+  footerText: string;
 }
 
 export interface AdminSession {

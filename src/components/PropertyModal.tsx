@@ -2,10 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { X, Check, Building2 } from 'lucide-react';
 import { ClientSession, LeadRecord, PropertyListing } from '../types/portal';
 import { formatMxn } from '../data/properties';
+import { buildWhatsAppHref } from './WhatsAppButton';
 
 interface PropertyModalProps {
   property: PropertyListing | null;
   clientSession?: ClientSession | null;
+  whatsappEnabled?: boolean;
+  whatsappNumber?: string;
   onClose: () => void;
   onCreateLead: (
     lead: Omit<LeadRecord, 'id' | 'createdAt' | 'status' | 'internalNotes'>
@@ -15,6 +18,8 @@ interface PropertyModalProps {
 export const PropertyModal: React.FC<PropertyModalProps> = ({
   property,
   clientSession,
+  whatsappEnabled,
+  whatsappNumber,
   onClose,
   onCreateLead,
 }) => {
@@ -329,6 +334,22 @@ export const PropertyModal: React.FC<PropertyModalProps> = ({
                   Solicitar visita y dossier
                 </button>
               </form>
+            )}
+
+            {whatsappEnabled && whatsappNumber && whatsappNumber.replace(/\D/g, '') && (
+              <div className="pt-3 border-t border-[#E6E2E8]">
+                <a
+                  href={buildWhatsAppHref(
+                    whatsappNumber,
+                    `Qué tal, me gustaría informes sobre ${property.title} (${property.folio}).`
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2.5 px-4 bg-[#16A34A] hover:bg-[#15803D] text-white text-xs font-semibold transition-colors inline-flex items-center justify-center gap-2"
+                >
+                  <span>Consultar este inmueble por WhatsApp</span>
+                </a>
+              </div>
             )}
           </div>
         </div>

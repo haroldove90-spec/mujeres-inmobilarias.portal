@@ -50,6 +50,7 @@ import { OfflineIndicator } from './components/OfflineIndicator';
 import { SplashScreen } from './components/SplashScreen';
 import { AdminLogin } from './components/admin/AdminLogin';
 import { AdminDashboard } from './components/admin/AdminDashboard';
+import { WhatsAppButton, buildWhatsAppHref } from './components/WhatsAppButton';
 
 type OperationFilter = 'Todas' | OperationType;
 type RegionFilter = 'Todas' | RegionState;
@@ -241,6 +242,16 @@ export default function App() {
     setSiteContent(fresh.siteContent);
   };
 
+  const sectionsEnabled = siteContent.sectionsEnabled ?? DEFAULT_SITE_CONTENT.sectionsEnabled;
+
+  const nosotrasSubitems = useMemo(
+    () =>
+      siteContent.nosotrasPillars.length > 0
+        ? siteContent.nosotrasPillars.map((p) => ({ id: p.id, label: p.label }))
+        : NOSOTRAS_SUBITEMS,
+    [siteContent.nosotrasPillars]
+  );
+
   const activeNosotrasPillar = useMemo(
     () =>
       siteContent.nosotrasPillars.find((p) => p.id === activeNosotrasTab) ??
@@ -397,70 +408,78 @@ export default function App() {
             </a>
 
             {/* Nosotras Dropdown */}
-            <div ref={nosotrasMenuRef} className="relative shrink-0">
-              <button
-                type="button"
-                aria-expanded={nosotrasDropdownOpen}
-                aria-haspopup="menu"
-                onClick={() => setNosotrasDropdownOpen((prev) => !prev)}
-                className={`inline-flex items-center gap-1 hover:text-[#892B84] transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                  nosotrasDropdownOpen ? 'text-[#892B84] underline underline-offset-4' : ''
-                }`}
-              >
-                <span>Nosotras</span>
-                <ChevronDown
-                  className={`w-3.5 h-3.5 transition-transform duration-150 ${
-                    nosotrasDropdownOpen ? 'rotate-180' : ''
+            {sectionsEnabled.nosotras && (
+              <div ref={nosotrasMenuRef} className="relative shrink-0">
+                <button
+                  type="button"
+                  aria-expanded={nosotrasDropdownOpen}
+                  aria-haspopup="menu"
+                  onClick={() => setNosotrasDropdownOpen((prev) => !prev)}
+                  className={`inline-flex items-center gap-1 hover:text-[#892B84] transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                    nosotrasDropdownOpen ? 'text-[#892B84] underline underline-offset-4' : ''
                   }`}
-                />
-              </button>
-
-              {nosotrasDropdownOpen && (
-                <div
-                  role="menu"
-                  aria-label="Subsecciones de Nosotras"
-                  className="absolute left-0 top-full mt-3 w-48 bg-white border border-[#E6E2E8] shadow-lg py-1.5 z-50"
                 >
-                  {NOSOTRAS_SUBITEMS.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      role="menuitem"
-                      onClick={() => handleSelectNosotrasSubitem(item.id)}
-                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors cursor-pointer flex items-center justify-between ${
-                        activeNosotrasTab === item.id
-                          ? 'bg-[#F9F5F9] text-[#892B84] font-semibold'
-                          : 'text-[#161513] hover:bg-[#F9F8FA]'
-                      }`}
-                    >
-                      <span>{item.label}</span>
-                      {activeNosotrasTab === item.id && (
-                        <span className="text-[10px] font-mono text-[#892B84]">·</span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+                  <span>Nosotras</span>
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 transition-transform duration-150 ${
+                      nosotrasDropdownOpen ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
 
-            <a
-              href="#servicios"
-              className="hover:text-[#892B84] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
-            >
-              Servicios
-            </a>
-            <a
-              href="#inmuebles"
-              className="hover:text-[#892B84] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
-            >
-              Inmuebles
-            </a>
-            <a
-              href="#contacto"
-              className="hover:text-[#892B84] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
-            >
-              Contacto
-            </a>
+                {nosotrasDropdownOpen && (
+                  <div
+                    role="menu"
+                    aria-label="Subsecciones de Nosotras"
+                    className="absolute left-0 top-full mt-3 w-48 bg-white border border-[#E6E2E8] shadow-lg py-1.5 z-50"
+                  >
+                    {nosotrasSubitems.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        role="menuitem"
+                        onClick={() => handleSelectNosotrasSubitem(item.id)}
+                        className={`w-full text-left px-4 py-2.5 text-sm transition-colors cursor-pointer flex items-center justify-between ${
+                          activeNosotrasTab === item.id
+                            ? 'bg-[#F9F5F9] text-[#892B84] font-semibold'
+                            : 'text-[#161513] hover:bg-[#F9F8FA]'
+                        }`}
+                      >
+                        <span>{item.label}</span>
+                        {activeNosotrasTab === item.id && (
+                          <span className="text-[10px] font-mono text-[#892B84]">·</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {sectionsEnabled.servicios && (
+              <a
+                href="#servicios"
+                className="hover:text-[#892B84] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
+              >
+                Servicios
+              </a>
+            )}
+            {sectionsEnabled.inmuebles && (
+              <a
+                href="#inmuebles"
+                className="hover:text-[#892B84] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
+              >
+                Inmuebles
+              </a>
+            )}
+            {sectionsEnabled.contacto && (
+              <a
+                href="#contacto"
+                className="hover:text-[#892B84] hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0"
+              >
+                Contacto
+              </a>
+            )}
           </nav>
 
           {/* Zone 3: Install App + Admin + Primary Action + Mobile Menu Trigger */}
@@ -475,13 +494,15 @@ export default function App() {
               <Lock className="w-3.5 h-3.5 text-[#892B84]" />
               <span>Admin</span>
             </button>
-            <button
-              type="button"
-              onClick={() => scrollToSection('contacto')}
-              className="hidden sm:inline-flex items-center px-3.5 lg:px-4 py-2 bg-[#892B84] text-white text-xs font-semibold hover:bg-[#6E206A] transition-colors whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#892B84]"
-            >
-              Agendar Asesoría
-            </button>
+            {sectionsEnabled.contacto && (
+              <button
+                type="button"
+                onClick={() => scrollToSection('contacto')}
+                className="hidden sm:inline-flex items-center px-3.5 lg:px-4 py-2 bg-[#892B84] text-white text-xs font-semibold hover:bg-[#6E206A] transition-colors whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#892B84]"
+              >
+                {siteContent.headerCtaLabel || 'Agendar Asesoría'}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setMobileMenuOpen((prev) => !prev)}
@@ -507,69 +528,79 @@ export default function App() {
               </a>
 
               {/* Mobile Nosotras Accordion */}
-              <div className="border-b border-[#E6E2E8]/70 py-1">
-                <button
-                  type="button"
-                  onClick={() => setMobileNosotrasOpen((prev) => !prev)}
-                  className="w-full py-1.5 flex items-center justify-between text-left cursor-pointer"
-                >
-                  <span>Nosotras</span>
-                  <ChevronDown
-                    className={`w-4 h-4 text-[#57534E] transition-transform ${
-                      mobileNosotrasOpen ? 'rotate-180' : ''
-                    }`}
-                  />
-                </button>
-                {mobileNosotrasOpen && (
-                  <div className="pl-4 pb-2 pt-1 flex flex-col space-y-1.5 text-xs text-[#57534E]">
-                    {NOSOTRAS_SUBITEMS.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => handleSelectNosotrasSubitem(item.id)}
-                        className={`text-left py-1 cursor-pointer ${
-                          activeNosotrasTab === item.id
-                            ? 'text-[#892B84] font-semibold'
-                            : 'hover:text-[#161513]'
-                        }`}
-                      >
-                        {item.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              {sectionsEnabled.nosotras && (
+                <div className="border-b border-[#E6E2E8]/70 py-1">
+                  <button
+                    type="button"
+                    onClick={() => setMobileNosotrasOpen((prev) => !prev)}
+                    className="w-full py-1.5 flex items-center justify-between text-left cursor-pointer"
+                  >
+                    <span>Nosotras</span>
+                    <ChevronDown
+                      className={`w-4 h-4 text-[#57534E] transition-transform ${
+                        mobileNosotrasOpen ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </button>
+                  {mobileNosotrasOpen && (
+                    <div className="pl-4 pb-2 pt-1 flex flex-col space-y-1.5 text-xs text-[#57534E]">
+                      {nosotrasSubitems.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => handleSelectNosotrasSubitem(item.id)}
+                          className={`text-left py-1 cursor-pointer ${
+                            activeNosotrasTab === item.id
+                              ? 'text-[#892B84] font-semibold'
+                              : 'hover:text-[#161513]'
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
-              <a
-                href="#servicios"
-                onClick={() => setMobileMenuOpen(false)}
-                className="py-2 border-b border-[#E6E2E8]/70"
-              >
-                Servicios
-              </a>
-              <a
-                href="#inmuebles"
-                onClick={() => setMobileMenuOpen(false)}
-                className="py-2 border-b border-[#E6E2E8]/70"
-              >
-                Inmuebles
-              </a>
-              <a
-                href="#contacto"
-                onClick={() => setMobileMenuOpen(false)}
-                className="py-2"
-              >
-                Contacto
-              </a>
+              {sectionsEnabled.servicios && (
+                <a
+                  href="#servicios"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="py-2 border-b border-[#E6E2E8]/70"
+                >
+                  Servicios
+                </a>
+              )}
+              {sectionsEnabled.inmuebles && (
+                <a
+                  href="#inmuebles"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="py-2 border-b border-[#E6E2E8]/70"
+                >
+                  Inmuebles
+                </a>
+              )}
+              {sectionsEnabled.contacto && (
+                <a
+                  href="#contacto"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="py-2"
+                >
+                  Contacto
+                </a>
+              )}
             </div>
             <div className="space-y-2 pt-1">
-              <button
-                type="button"
-                onClick={() => scrollToSection('contacto')}
-                className="w-full py-2.5 px-4 bg-[#892B84] text-white text-xs font-semibold hover:bg-[#6E206A] transition-colors cursor-pointer"
-              >
-                Agendar Asesoría
-              </button>
+              {sectionsEnabled.contacto && (
+                <button
+                  type="button"
+                  onClick={() => scrollToSection('contacto')}
+                  className="w-full py-2.5 px-4 bg-[#892B84] text-white text-xs font-semibold hover:bg-[#6E206A] transition-colors cursor-pointer"
+                >
+                  {siteContent.headerCtaLabel || 'Agendar Asesoría'}
+                </button>
+              )}
               <PWAInstallButton variant="drawer" />
               <button
                 type="button"
@@ -595,6 +626,11 @@ export default function App() {
                   <p className="text-[11px] sm:text-xs uppercase tracking-[0.16em] sm:tracking-[0.22em] text-[#892B84] font-semibold">
                     {siteContent.heroEyebrow}
                   </p>
+                  {siteContent.heroWelcomeMessage?.trim() && (
+                    <p className="mt-2.5 text-sm font-medium text-[#161513] bg-[#F9F5F9] border-l-2 border-[#892B84] px-3 py-1.5 inline-block">
+                      {siteContent.heroWelcomeMessage}
+                    </p>
+                  )}
                   <h1 className="mt-3 sm:mt-4 text-[clamp(2.05rem,4.3vw,3.85rem)] font-medium tracking-tight text-[#161513] leading-[1.08] [text-wrap:balance]">
                     {siteContent.heroTitle}
                   </h1>
@@ -649,20 +685,24 @@ export default function App() {
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-3 pt-1">
-                    <button
-                      type="submit"
-                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-3 bg-[#892B84] text-white text-xs font-semibold hover:bg-[#6E206A] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-                    >
-                      <span>Explorar inmuebles</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => scrollToSection('servicios')}
-                      className="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-3 border border-[#E6E2E8] text-xs font-medium text-[#161513] hover:border-[#892B84] hover:text-[#892B84] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-                    >
-                      Conocer servicios
-                    </button>
+                    {sectionsEnabled.inmuebles && (
+                      <button
+                        type="submit"
+                        className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-3 bg-[#892B84] text-white text-xs font-semibold hover:bg-[#6E206A] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                      >
+                        <span>{siteContent.heroPrimaryCtaLabel || 'Explorar inmuebles'}</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    )}
+                    {sectionsEnabled.servicios && (
+                      <button
+                        type="button"
+                        onClick={() => scrollToSection('servicios')}
+                        className="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-3 border border-[#E6E2E8] text-xs font-medium text-[#161513] hover:border-[#892B84] hover:text-[#892B84] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                      >
+                        {siteContent.heroSecondaryCtaLabel || 'Conocer servicios'}
+                      </button>
+                    )}
                     <PWAInstallButton />
                   </div>
                 </form>
@@ -697,24 +737,27 @@ export default function App() {
               </div>
             </div>
 
-            {/* Full-Width 4-Column Capabilities Strip */}
-            <div className="mt-12 pt-8 border-t border-[#E6E2E8] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {siteContent.capabilities.map((cap) => (
-                <div key={cap.number}>
-                  <p className="font-mono text-xs text-[#892B84] font-semibold tabular-nums">
-                    {cap.number}
-                  </p>
-                  <h2 className="mt-1 font-sans text-sm font-semibold text-[#161513]">
-                    {cap.title}
-                  </h2>
-                  <p className="mt-1 text-xs leading-relaxed text-[#57534E]">{cap.description}</p>
-                </div>
-              ))}
-            </div>
+            {/* Full-Width Capabilities Strip */}
+            {sectionsEnabled.capabilities && siteContent.capabilities.length > 0 && (
+              <div className="mt-12 pt-8 border-t border-[#E6E2E8] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {siteContent.capabilities.map((cap, idx) => (
+                  <div key={`${cap.number}-${idx}`}>
+                    <p className="font-mono text-xs text-[#892B84] font-semibold tabular-nums">
+                      {cap.number}
+                    </p>
+                    <h2 className="mt-1 font-sans text-sm font-semibold text-[#161513]">
+                      {cap.title}
+                    </h2>
+                    <p className="mt-1 text-xs leading-relaxed text-[#57534E]">{cap.description}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </section>
 
         {/* Section 2: Nosotras (Misión, Visión, Valores, Alianzas) */}
+        {sectionsEnabled.nosotras && (
         <section id="nosotras" className="py-14 sm:py-20 lg:py-24 bg-[#F9F8FA]">
           <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10">
             <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-8 border-b border-[#E6E2E8]">
@@ -841,8 +884,10 @@ export default function App() {
             </div>
           </div>
         </section>
+        )}
 
         {/* Section 3: Servicios */}
+        {sectionsEnabled.servicios && (
         <section
           id="servicios"
           className="py-14 sm:py-20 lg:py-24 bg-white border-t border-[#E6E2E8]"
@@ -861,9 +906,9 @@ export default function App() {
             </div>
 
             <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6">
-              {siteContent.servicesList.map((service) => (
+              {siteContent.servicesList.map((service, sIdx) => (
                 <div
-                  key={service.number}
+                  key={`${service.number}-${sIdx}`}
                   className="bg-white border border-[#E6E2E8] p-6 sm:p-8 flex flex-col justify-between gap-6 hover:border-[#892B84]/45 transition-colors"
                 >
                   <div>
@@ -877,8 +922,8 @@ export default function App() {
                       {service.summary}
                     </p>
                     <ul className="mt-5 pt-4 border-t border-[#E6E2E8] space-y-2">
-                      {service.deliverables.map((del) => (
-                        <li key={del} className="text-xs text-[#44403C] flex items-start gap-2">
+                      {service.deliverables.map((del, dIdx) => (
+                        <li key={`${del}-${dIdx}`} className="text-xs text-[#44403C] flex items-start gap-2">
                           <span className="text-[#892B84]" aria-hidden="true">
                             —
                           </span>
@@ -894,7 +939,7 @@ export default function App() {
                       onClick={() => handleServiceSelect(service.contactIntent)}
                       className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#892B84] hover:text-[#6E206A] hover:underline cursor-pointer"
                     >
-                      <span>Solicitar este servicio</span>
+                      <span>{siteContent.serviceCtaLabel || 'Solicitar este servicio'}</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -903,8 +948,10 @@ export default function App() {
             </div>
           </div>
         </section>
+        )}
 
         {/* Section 4: Inmuebles (Curated Property Portfolio) */}
+        {sectionsEnabled.inmuebles && (
         <section
           id="inmuebles"
           className="py-14 sm:py-20 lg:py-24 bg-[#F9F8FA] border-t border-[#E6E2E8]"
@@ -913,10 +960,10 @@ export default function App() {
             <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-8 border-b border-[#E6E2E8]">
               <div>
                 <p className="text-xs uppercase tracking-[0.22em] text-[#892B84] font-semibold">
-                  Inmuebles · Portafolio Verificado
+                  {siteContent.inmueblesKicker || 'Inmuebles · Portafolio Verificado'}
                 </p>
                 <h2 className="mt-2 text-3xl lg:text-4xl font-medium tracking-tight text-[#161513]">
-                  Propiedades seleccionadas
+                  {siteContent.inmueblesHeading || 'Propiedades seleccionadas'}
                 </h2>
               </div>
 
@@ -1039,8 +1086,10 @@ export default function App() {
             )}
           </div>
         </section>
+        )}
 
         {/* Section 5: Contacto */}
+        {sectionsEnabled.contacto && (
         <section
           id="contacto"
           className="py-14 sm:py-20 lg:py-28 bg-[#161513] text-white border-t border-[#292524]"
@@ -1069,24 +1118,67 @@ export default function App() {
                       <p className="text-[#A8A29E]">{siteContent.officeAddress}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Phone className="w-4 h-4 text-[#D88FD4] shrink-0" />
-                    <a
-                      href={`tel:${siteContent.officePhone.replace(/[^+\d]/g, '')}`}
-                      className="font-mono text-white hover:text-[#D88FD4] transition-colors tabular-nums"
-                    >
-                      {siteContent.officePhone}
-                    </a>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Mail className="w-4 h-4 text-[#D88FD4] shrink-0" />
-                    <a
-                      href={`mailto:${siteContent.officeEmail}`}
-                      className="text-white hover:text-[#D88FD4] transition-colors break-all"
-                    >
-                      {siteContent.officeEmail}
-                    </a>
-                  </div>
+                  {siteContent.officePhone.trim() && (
+                    <div className="flex items-center gap-3">
+                      <Phone className="w-4 h-4 text-[#D88FD4] shrink-0" />
+                      <a
+                        href={`tel:${siteContent.officePhone.replace(/[^+\d]/g, '')}`}
+                        className="font-mono text-white hover:text-[#D88FD4] transition-colors tabular-nums"
+                      >
+                        {siteContent.officePhone}
+                      </a>
+                    </div>
+                  )}
+                  {siteContent.officeSecondaryPhone?.trim() && (
+                    <div className="flex items-center gap-3">
+                      <Phone className="w-4 h-4 text-[#D88FD4] shrink-0" />
+                      <a
+                        href={`tel:${siteContent.officeSecondaryPhone.replace(/[^+\d]/g, '')}`}
+                        className="font-mono text-white hover:text-[#D88FD4] transition-colors tabular-nums"
+                      >
+                        {siteContent.officeSecondaryPhone}
+                      </a>
+                    </div>
+                  )}
+                  {siteContent.officeEmail.trim() && (
+                    <div className="flex items-center gap-3">
+                      <Mail className="w-4 h-4 text-[#D88FD4] shrink-0" />
+                      <a
+                        href={`mailto:${siteContent.officeEmail}`}
+                        className="text-white hover:text-[#D88FD4] transition-colors break-all"
+                      >
+                        {siteContent.officeEmail}
+                      </a>
+                    </div>
+                  )}
+                  {siteContent.officeSecondaryEmail?.trim() && (
+                    <div className="flex items-center gap-3">
+                      <Mail className="w-4 h-4 text-[#D88FD4] shrink-0" />
+                      <a
+                        href={`mailto:${siteContent.officeSecondaryEmail}`}
+                        className="text-white hover:text-[#D88FD4] transition-colors break-all"
+                      >
+                        {siteContent.officeSecondaryEmail}
+                      </a>
+                    </div>
+                  )}
+                  {siteContent.whatsappEnabled &&
+                    siteContent.whatsappNumber.replace(/\D/g, '').length > 0 && (
+                      <div className="pt-2">
+                        <a
+                          href={buildWhatsAppHref(
+                            siteContent.whatsappNumber,
+                            siteContent.whatsappMessage
+                          )}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#16A34A] hover:bg-[#15803D] text-white text-xs font-semibold transition-colors"
+                        >
+                          <span>Escribir por {siteContent.whatsappLabel || 'WhatsApp'}</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </a>
+                      </div>
+                    )}
                 </div>
               </div>
 
@@ -1221,13 +1313,14 @@ export default function App() {
 
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1">
                       <span className="text-[11px] text-[#A8A29E]">
-                        Asesoría confidencial · Sin compromiso de exclusividad previa.
+                        {siteContent.contactPrivacyNote ||
+                          'Asesoría confidencial · Sin compromiso de exclusividad previa.'}
                       </span>
                       <button
                         type="submit"
                         className="px-6 py-3 bg-[#892B84] text-white text-xs font-semibold hover:bg-[#9E3599] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
                       >
-                        Solicitar asesoría gratuita
+                        {siteContent.contactSubmitLabel || 'Solicitar asesoría gratuita'}
                       </button>
                     </div>
                   </form>
@@ -1236,6 +1329,7 @@ export default function App() {
             </div>
           </div>
         </section>
+        )}
       </main>
 
       {/* Quiet Editorial Footer */}
@@ -1249,18 +1343,26 @@ export default function App() {
             <a href="#inicio" className="hover:text-[#892B84] transition-colors">
               Inicio
             </a>
-            <a href="#nosotras" className="hover:text-[#892B84] transition-colors">
-              Nosotras
-            </a>
-            <a href="#servicios" className="hover:text-[#892B84] transition-colors">
-              Servicios
-            </a>
-            <a href="#inmuebles" className="hover:text-[#892B84] transition-colors">
-              Inmuebles
-            </a>
-            <a href="#contacto" className="hover:text-[#892B84] transition-colors">
-              Contacto
-            </a>
+            {sectionsEnabled.nosotras && (
+              <a href="#nosotras" className="hover:text-[#892B84] transition-colors">
+                Nosotras
+              </a>
+            )}
+            {sectionsEnabled.servicios && (
+              <a href="#servicios" className="hover:text-[#892B84] transition-colors">
+                Servicios
+              </a>
+            )}
+            {sectionsEnabled.inmuebles && (
+              <a href="#inmuebles" className="hover:text-[#892B84] transition-colors">
+                Inmuebles
+              </a>
+            )}
+            {sectionsEnabled.contacto && (
+              <a href="#contacto" className="hover:text-[#892B84] transition-colors">
+                Contacto
+              </a>
+            )}
             <button
               type="button"
               onClick={openAdmin}
@@ -1272,14 +1374,24 @@ export default function App() {
           </div>
 
           <p className="text-xs text-[#57534E]">
-            © 2026 Mujer Inmobiliaria &amp; Asociadas. Todos los derechos reservados.
+            {siteContent.footerText ||
+              '© 2026 Mujer Inmobiliaria & Asociadas. Todos los derechos reservados.'}
           </p>
         </div>
       </footer>
 
+      <WhatsAppButton
+        enabled={siteContent.whatsappEnabled}
+        phoneNumber={siteContent.whatsappNumber}
+        label={siteContent.whatsappLabel}
+        message={siteContent.whatsappMessage}
+      />
+
       {/* Property Technical Dossier Modal */}
       <PropertyModal
         property={selectedProperty}
+        whatsappEnabled={siteContent.whatsappEnabled}
+        whatsappNumber={siteContent.whatsappNumber}
         onClose={() => setSelectedProperty(null)}
         onCreateLead={handleCreateLead}
       />
