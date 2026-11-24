@@ -1,5 +1,6 @@
 import {
   DEFAULT_ADVISORS,
+  DEFAULT_APPOINTMENTS,
   DEFAULT_LEADS,
   DEFAULT_PROPERTIES,
   DEFAULT_SITE_CONTENT,
@@ -8,10 +9,12 @@ import {
   AdminRole,
   AdminSession,
   Advisor,
+  AppointmentStatus,
   ClientSession,
   LeadRecord,
   PropertyListing,
   SiteContent,
+  VisitAppointment,
 } from '../types/portal';
 import { isSupabaseConfigured, supabase } from './supabase';
 
@@ -20,6 +23,7 @@ const KEYS = {
   advisors: 'mia_portal_advisors_v1',
   leads: 'mia_portal_leads_v1',
   siteContent: 'mia_portal_site_content_v1',
+  appointments: 'mia_portal_appointments_v1',
 };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -123,6 +127,51 @@ function toSupabaseProperty(item: PropertyListing) {
     highlights: item.highlights,
     description: item.description,
     updated_at: new Date().toISOString(),
+  };
+}
+
+function mapSupabaseAppointment(r: Record<string, unknown>): VisitAppointment {
+  return {
+    id: String(r.id),
+    title: String(r.title ?? ''),
+    clientName: String(r.client_name ?? ''),
+    clientPhone: String(r.client_phone ?? ''),
+    clientEmail: String(r.client_email ?? ''),
+    propertyId: r.property_id ? String(r.property_id) : undefined,
+    propertyTitle: r.property_title ? String(r.property_title) : undefined,
+    propertyFolio: r.property_folio ? String(r.property_folio) : undefined,
+    advisorName: String(r.advisor_name ?? ''),
+    date: String(r.visit_date ?? ''),
+    startTime: String(r.start_time ?? '10:00'),
+    durationMinutes: Number(r.duration_minutes ?? 60),
+    location: String(r.location ?? ''),
+    notes: String(r.notes ?? ''),
+    status: (r.status as AppointmentStatus) ?? 'Programada',
+    reminderMinutes: Number(r.reminder_minutes ?? 60),
+    leadId: r.lead_id ? String(r.lead_id) : undefined,
+    createdAt: String(r.created_at ?? new Date().toISOString()),
+  };
+}
+
+function toSupabaseAppointment(item: VisitAppointment) {
+  return {
+    id: item.id,
+    title: item.title,
+    client_name: item.clientName,
+    client_phone: item.clientPhone,
+    client_email: item.clientEmail,
+    property_id: item.propertyId ?? '',
+    property_title: item.propertyTitle ?? '',
+    property_folio: item.propertyFolio ?? '',
+    advisor_name: item.advisorName,
+    visit_date: item.date,
+    start_time: item.startTime,
+    duration_minutes: item.durationMinutes,
+    location: item.location,
+    notes: item.notes,
+    status: item.status,
+    reminder_minutes: item.reminderMinutes,
+    lead_id: item.leadId ?? '',
   };
 }
 
@@ -331,6 +380,7 @@ export async function loadPortalData(adminToken?: string): Promise<{
   advisors: Advisor[];
   leads: LeadRecord[];
   siteContent: SiteContent;
+  appointments: VisitAppointment[];
 }> {
   const localProps = readLocal(KEYS.properties, DEFAULT_PROPERTIES);
   const localAdvisors = readLocal(KEYS.advisors, DEFAULT_ADVISORS);
@@ -338,6 +388,7 @@ export async function loadPortalData(adminToken?: string): Promise<{
   const localContent = mergeSiteContent(
     readLocal<Partial<SiteContent>>(KEYS.siteContent, DEFAULT_SITE_CONTENT)
   );
+  const localAppointments = readLocal(KEYS.appointments, DEFAULT_APPOINTMENTS);
 
   if (!isSupabaseConfigured || !supabase) {
     return {
@@ -345,6 +396,7 @@ export async function loadPortalData(adminToken?: string): Promise<{
       advisors: localAdvisors,
       leads: localLeads,
       siteContent: localContent,
+      appointments: localAppointments,
     };
   }
 
@@ -361,17 +413,22 @@ export async function loadPortalData(adminToken?: string): Promise<{
       ? supabase.rpc('admin_list_leads', { p_token: adminToken })
       : Promise.resolve({ data: null });
 
+    const aptPromise = adminToken
+      ? supabase.rpc('admin_list_appointments', { p_token: adminToken })
+      : Promise.resolve({ data: null });
+
     const cmsPromise = supabase
       .from('site_content')
       .select('content')
       .eq('id', 'main')
       .maybeSingle();
 
-    const [propsRes, advRes, leadsRes, cmsRes] = await Promise.all([
+    const [propsRes, advRes, leadsRes, cmsRes, aptRes] = await Promise.all([
       propsPromise,
       advPromise,
       leadsPromise,
       cmsPromise,
+      aptPromise,
     ]);
 
     return {
@@ -393,6 +450,10 @@ export async function loadPortalData(adminToken?: string): Promise<{
         cmsRes.data && cmsRes.data.content
           ? mergeSiteContent(cmsRes.data.content as Partial<SiteContent>)
           : localContent,
+      appointments:
+        Array.isArray(aptRes.data) && aptRes.data.length > 0
+          ? aptRes.data.map((row) => mapSupabaseAppointment(row as Record<string, unknown>))
+          : localAppointments,
     };
   } catch {
     return {
@@ -400,6 +461,7 @@ export async function loadPortalData(adminToken?: string): Promise<{
       advisors: localAdvisors,
       leads: localLeads,
       siteContent: localContent,
+      appointments: localAppointments,
     };
   }
 }
@@ -545,21 +607,62 @@ export async function saveSiteContent(
   }
 }
 
+export async function upsertAppointment(
+  item: VisitAppointment,
+  currentList: VisitAppointment[],
+  adminToken?: string
+): Promise<VisitAppointment[]> {
+  const exists = currentList.some((a) => a.id === item.id);
+  const next = (exists
+    ? currentList.map((a) => (a.id === item.id ? item : a))
+    : [...currentList, item]
+  ).sort((a, b) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`));
+  writeLocal(KEYS.appointments, next);
+
+  if (isSupabaseConfigured && supabase && adminToken) {
+    await supabase.rpc('admin_upsert_appointment', {
+      p_token: adminToken,
+      p_item: toSupabaseAppointment(item),
+    });
+  }
+  return next;
+}
+
+export async function removeAppointment(
+  id: string,
+  currentList: VisitAppointment[],
+  adminToken?: string
+): Promise<VisitAppointment[]> {
+  const next = currentList.filter((a) => a.id !== id);
+  writeLocal(KEYS.appointments, next);
+
+  if (isSupabaseConfigured && supabase && adminToken) {
+    await supabase.rpc('admin_delete_appointment', {
+      p_token: adminToken,
+      p_id: id,
+    });
+  }
+  return next;
+}
+
 export async function resetAllPortalData(): Promise<{
   properties: PropertyListing[];
   advisors: Advisor[];
   leads: LeadRecord[];
   siteContent: SiteContent;
+  appointments: VisitAppointment[];
 }> {
   writeLocal(KEYS.properties, DEFAULT_PROPERTIES);
   writeLocal(KEYS.advisors, DEFAULT_ADVISORS);
   writeLocal(KEYS.leads, DEFAULT_LEADS);
   writeLocal(KEYS.siteContent, DEFAULT_SITE_CONTENT);
+  writeLocal(KEYS.appointments, DEFAULT_APPOINTMENTS);
 
   return {
     properties: DEFAULT_PROPERTIES,
     advisors: DEFAULT_ADVISORS,
     leads: DEFAULT_LEADS,
     siteContent: DEFAULT_SITE_CONTENT,
+    appointments: DEFAULT_APPOINTMENTS,
   };
 }

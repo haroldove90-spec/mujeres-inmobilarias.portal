@@ -15,6 +15,29 @@ export type LeadStatus =
 
 export type AdminRole = 'administradora' | 'asesora';
 
+export type AppointmentStatus = 'Programada' | 'Confirmada' | 'Completada' | 'Cancelada';
+
+export interface VisitAppointment {
+  id: string;
+  title: string;
+  clientName: string;
+  clientPhone: string;
+  clientEmail: string;
+  propertyId?: string;
+  propertyTitle?: string;
+  propertyFolio?: string;
+  advisorName: string;
+  date: string;
+  startTime: string;
+  durationMinutes: number;
+  location: string;
+  notes: string;
+  status: AppointmentStatus;
+  reminderMinutes: number;
+  leadId?: string;
+  createdAt: string;
+}
+
 export interface Advisor {
   id: string;
   name: string;

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import {
   DEFAULT_ADVISORS,
+  DEFAULT_APPOINTMENTS,
   DEFAULT_LEADS,
   DEFAULT_PROPERTIES,
   DEFAULT_SITE_CONTENT,
@@ -29,17 +30,20 @@ import {
   PropertyListing,
   RegionState,
   SiteContent,
+  VisitAppointment,
 } from './types/portal';
 import {
   createLead,
   loadPortalData,
   logoutPortalToken,
   removeAdvisor,
+  removeAppointment,
   removeProperty,
   resetAllPortalData,
   saveSiteContent,
   updateLead,
   upsertAdvisor,
+  upsertAppointment,
   upsertProperty,
 } from './lib/portalStore';
 import { BrandLogo } from './components/BrandLogo';
@@ -79,6 +83,7 @@ export default function App() {
   const [properties, setProperties] = useState<PropertyListing[]>(DEFAULT_PROPERTIES);
   const [advisors, setAdvisors] = useState<Advisor[]>(DEFAULT_ADVISORS);
   const [leads, setLeads] = useState<LeadRecord[]>(DEFAULT_LEADS);
+  const [appointments, setAppointments] = useState<VisitAppointment[]>(DEFAULT_APPOINTMENTS);
   const [siteContent, setSiteContent] = useState<SiteContent>(DEFAULT_SITE_CONTENT);
 
   // Navigation & Nosotras dropdown
@@ -123,6 +128,7 @@ export default function App() {
       setProperties(data.properties);
       setAdvisors(data.advisors);
       setLeads(data.leads);
+      setAppointments(data.appointments);
       setSiteContent(data.siteContent);
     });
 
@@ -234,11 +240,22 @@ export default function App() {
     setSiteContent(content);
   };
 
+  const handleSaveAppointment = async (item: VisitAppointment) => {
+    const next = await upsertAppointment(item, appointments, adminSession?.token);
+    setAppointments(next);
+  };
+
+  const handleDeleteAppointment = async (id: string) => {
+    const next = await removeAppointment(id, appointments, adminSession?.token);
+    setAppointments(next);
+  };
+
   const handleResetDefaults = async () => {
     const fresh = await resetAllPortalData();
     setProperties(fresh.properties);
     setAdvisors(fresh.advisors);
     setLeads(fresh.leads);
+    setAppointments(fresh.appointments);
     setSiteContent(fresh.siteContent);
   };
 
@@ -364,6 +381,7 @@ export default function App() {
         properties={properties}
         advisors={advisors}
         leads={leads}
+        appointments={appointments}
         siteContent={siteContent}
         onBackToPortal={backToPortal}
         onLogout={handleAdminLogout}
@@ -372,6 +390,8 @@ export default function App() {
         onUpdateLead={handleUpdateLead}
         onSaveAdvisor={handleSaveAdvisor}
         onDeleteAdvisor={handleDeleteAdvisor}
+        onSaveAppointment={handleSaveAppointment}
+        onDeleteAppointment={handleDeleteAppointment}
         onSaveSiteContent={handleSaveSiteContent}
         onResetDefaults={handleResetDefaults}
       />

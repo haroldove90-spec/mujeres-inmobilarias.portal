@@ -3,6 +3,7 @@ import {
   LeadRecord,
   PropertyListing,
   SiteContent,
+  VisitAppointment,
 } from '../types/portal';
 
 export const HERO_IMAGE = '/src/assets/images/hero_modern_residence_1794951601307.jpg';
@@ -294,6 +295,49 @@ export const DEFAULT_LEADS: LeadRecord[] = [
     assignedAdvisor: 'Renata Ibarra Domínguez',
     status: 'Nuevo',
     createdAt: '2026-11-24T08:45:00Z',
+  },
+];
+
+export const DEFAULT_APPOINTMENTS: VisitAppointment[] = [
+  {
+    id: 'apt-demo-1',
+    title: 'Recorrido · Casa Cantilever Cumbres del Lago',
+    clientName: 'Mariana Ortega',
+    clientPhone: '+52 442 510 3829',
+    clientEmail: 'mariana.ortega@ejemplo.mx',
+    propertyId: 'qro-juriquilla-01',
+    propertyTitle: 'Residencia Cantilever en Cumbres del Lago',
+    propertyFolio: 'MIA-QRO-104',
+    advisorName: 'Sofía Mendoza Villalobos',
+    date: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
+    startTime: '11:00',
+    durationMinutes: 60,
+    location: 'Cumbres del Lago · Juriquilla, Querétaro',
+    notes: 'Confirmar acceso en caseta con propietarios antes de la visita.',
+    status: 'Confirmada',
+    reminderMinutes: 60,
+    leadId: 'lead-demo-1',
+    createdAt: '2026-11-24T09:00:00Z',
+  },
+  {
+    id: 'apt-demo-2',
+    title: 'Asesoría de inversión · Terrenos Yucatán',
+    clientName: 'Alejandra Torres Quiroz',
+    clientPhone: '+52 55 3102 4490',
+    clientEmail: 'ale.torres@ejemplo.mx',
+    propertyId: 'yuc-temozon-02',
+    propertyTitle: 'Villa Contemporánea con Alberca en Temozón Norte',
+    propertyFolio: 'MIA-YUC-208',
+    advisorName: 'Valentina Peón Escalante',
+    date: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10),
+    startTime: '16:30',
+    durationMinutes: 60,
+    location: 'Temozón Norte, Mérida, Yucatán',
+    notes: 'Revisar comparables y tiempos de escrituración.',
+    status: 'Programada',
+    reminderMinutes: 30,
+    leadId: 'lead-demo-2',
+    createdAt: '2026-11-24T10:00:00Z',
   },
 ];
 

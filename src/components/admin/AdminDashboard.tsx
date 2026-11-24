@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import {
   ArrowLeft,
   Building2,
+  Calendar,
   Check,
   Edit3,
   FileText,
@@ -25,19 +26,23 @@ import {
   PropertyListing,
   PropertyStatus,
   SiteContent,
+  VisitAppointment,
 } from '../../types/portal';
 import { formatMxn } from '../../data/properties';
+import { formatReadableDate } from '../../lib/calendarUtils';
 import { BrandLogo } from '../BrandLogo';
 import { PropertyEditorModal } from './PropertyEditorModal';
 import { AdminCmsEditor } from './AdminCmsEditor';
+import { AdminAgenda } from './AdminAgenda';
 
-type AdminView = 'overview' | 'properties' | 'leads' | 'advisors' | 'cms';
+type AdminView = 'overview' | 'agenda' | 'properties' | 'leads' | 'advisors' | 'cms';
 
 interface AdminDashboardProps {
   session: AdminSession;
   properties: PropertyListing[];
   advisors: Advisor[];
   leads: LeadRecord[];
+  appointments: VisitAppointment[];
   siteContent: SiteContent;
   onBackToPortal: () => void;
   onLogout: () => void;
@@ -46,6 +51,8 @@ interface AdminDashboardProps {
   onUpdateLead: (lead: LeadRecord) => Promise<void>;
   onSaveAdvisor: (advisor: Advisor) => Promise<void>;
   onDeleteAdvisor: (id: string) => Promise<void>;
+  onSaveAppointment: (appointment: VisitAppointment) => Promise<void>;
+  onDeleteAppointment: (id: string) => Promise<void>;
   onSaveSiteContent: (content: SiteContent) => Promise<void>;
   onResetDefaults: () => Promise<void>;
 }
@@ -72,6 +79,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   properties,
   advisors,
   leads,
+  appointments,
   siteContent,
   onBackToPortal,
   onLogout,
@@ -80,11 +88,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onUpdateLead,
   onSaveAdvisor,
   onDeleteAdvisor,
+  onSaveAppointment,
+  onDeleteAppointment,
   onSaveSiteContent,
   onResetDefaults,
 }) => {
   const [view, setView] = useState<AdminView>('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [agendaPrefill, setAgendaPrefill] = useState<Partial<VisitAppointment> | null>(null);
 
   // Properties table controls
   const [propQuery, setPropQuery] = useState('');
@@ -116,12 +127,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const forSale = properties.filter(
       (p) => (p.operation === 'Venta' || p.operation === 'Terreno') && p.status !== 'Oculta'
     ).length;
-    const forRent = properties.filter(
-      (p) => p.operation === 'Renta' && p.status !== 'Oculta'
+    const scheduledVisits = appointments.filter(
+      (a) => a.status === 'Programada' || a.status === 'Confirmada'
     ).length;
     const newLeads = leads.filter((l) => l.status === 'Nuevo').length;
-    return { active, forSale, forRent, newLeads };
-  }, [properties, leads]);
+    return { active, forSale, scheduledVisits, newLeads };
+  }, [properties, leads, appointments]);
 
   const filteredProps = useMemo(() => {
     const q = propQuery.trim().toLowerCase();
@@ -156,6 +167,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const navItems: { id: AdminView; label: string; icon: React.ReactNode; adminOnly?: boolean }[] =
     [
       { id: 'overview', label: 'Resumen', icon: <LayoutDashboard className="w-4 h-4" /> },
+      { id: 'agenda', label: 'Agenda de visitas', icon: <Calendar className="w-4 h-4" /> },
       { id: 'properties', label: 'Inmuebles y precios', icon: <Building2 className="w-4 h-4" /> },
       { id: 'leads', label: 'Prospectos y visitas', icon: <Inbox className="w-4 h-4" /> },
       {
@@ -259,6 +271,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       }`}
                     >
                       {metrics.newLeads}
+                    </span>
+                  )}
+                  {item.id === 'agenda' && metrics.scheduledVisits > 0 && (
+                    <span
+                      className={`font-mono text-[11px] tabular-nums ${
+                        active ? 'text-white/90' : 'text-[#892B84] font-semibold'
+                      }`}
+                    >
+                      {metrics.scheduledVisits}
                     </span>
                   )}
                 </button>
@@ -405,9 +426,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </p>
                 </div>
                 <div className="bg-white border border-[#E6E2E8] p-5">
-                  <p className="text-xs text-[#57534E]">En Renta</p>
-                  <p className="mt-2 font-mono text-2xl font-medium text-[#161513] tabular-nums">
-                    {metrics.forRent}
+                  <p className="text-xs text-[#57534E]">Visitas en agenda</p>
+                  <p className="mt-2 font-mono text-2xl font-medium text-[#892B84] tabular-nums">
+                    {metrics.scheduledVisits}
                   </p>
                 </div>
                 <div className="bg-white border border-[#E6E2E8] p-5">
@@ -470,43 +491,65 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </div>
                 </div>
 
-                {/* Quick Actions & Recent Properties */}
+                {/* Upcoming Appointments Preview */}
                 <div className="lg:col-span-5 bg-white border border-[#E6E2E8]">
                   <div className="px-5 py-4 border-b border-[#E6E2E8] flex items-center justify-between gap-4">
                     <h2 className="font-sans text-sm font-semibold text-[#161513]">
-                      Portafolio reciente
+                      Próximas visitas en agenda
                     </h2>
                     <button
                       type="button"
-                      onClick={() => setView('properties')}
+                      onClick={() => setView('agenda')}
                       className="text-xs font-semibold text-[#892B84] hover:underline cursor-pointer"
                     >
-                      Administrar precios
+                      Abrir calendario
                     </button>
                   </div>
                   <div className="divide-y divide-[#E6E2E8]">
-                    {properties.slice(0, 5).map((prop) => (
-                      <div
-                        key={prop.id}
-                        className="px-5 py-3.5 flex items-center justify-between gap-3"
-                      >
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-[#161513] truncate">
-                            {prop.title}
-                          </p>
-                          <p className="text-xs text-[#57534E] font-mono tabular-nums">
-                            {prop.folio} · {prop.operation}
-                          </p>
-                        </div>
-                        <span className="font-mono text-xs font-medium text-[#161513] tabular-nums shrink-0">
-                          {formatMxn(prop.priceMxn)}
-                        </span>
+                    {appointments.filter((a) => a.status !== 'Cancelada').length > 0 ? (
+                      appointments
+                        .filter((a) => a.status !== 'Cancelada')
+                        .slice(0, 5)
+                        .map((apt) => (
+                          <div
+                            key={apt.id}
+                            className="px-5 py-3.5 flex items-center justify-between gap-3"
+                          >
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-[#161513] truncate">
+                                {apt.title}
+                              </p>
+                              <p className="text-xs text-[#57534E] font-mono tabular-nums truncate">
+                                {formatReadableDate(apt.date)} · {apt.startTime} · {apt.clientName}
+                              </p>
+                            </div>
+                            <span className="text-[11px] font-semibold text-[#892B84] shrink-0">
+                              {apt.status}
+                            </span>
+                          </div>
+                        ))
+                    ) : (
+                      <div className="p-6 text-center text-xs text-[#57534E]">
+                        No hay visitas programadas todavía.
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
               </div>
             </>
+          )}
+
+          {/* VIEW 2: AGENDA & CALENDAR */}
+          {view === 'agenda' && (
+            <AdminAgenda
+              appointments={appointments}
+              properties={properties}
+              advisors={advisors}
+              prefillDraft={agendaPrefill}
+              onClearPrefill={() => setAgendaPrefill(null)}
+              onSaveAppointment={onSaveAppointment}
+              onDeleteAppointment={onDeleteAppointment}
+            />
           )}
 
           {/* VIEW 2: PROPERTIES & INLINE PRICING */}
@@ -939,19 +982,58 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2 pt-2">
-                        <a
-                          href={`mailto:${activeLead.email}?subject=Mujer%20Inmobiliaria%20-%20Seguimiento`}
-                          className="py-2 px-3 bg-[#892B84] text-white text-xs font-semibold text-center hover:bg-[#6E206A]"
+                      <div className="space-y-2 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const matchedProp = properties.find(
+                              (p) => p.id === activeLead.propertyId
+                            );
+                            setAgendaPrefill({
+                              title: activeLead.propertyTitle
+                                ? `Visita · ${activeLead.propertyTitle}`
+                                : `Asesoría · ${activeLead.intent}`,
+                              clientName: activeLead.name,
+                              clientPhone: activeLead.phone,
+                              clientEmail: activeLead.email,
+                              propertyId: activeLead.propertyId,
+                              propertyTitle: activeLead.propertyTitle,
+                              propertyFolio: activeLead.propertyFolio,
+                              advisorName:
+                                activeLead.assignedAdvisor || matchedProp?.advisor.name || '',
+                              date:
+                                activeLead.preferredDate ||
+                                new Date().toISOString().slice(0, 10),
+                              startTime: '11:00',
+                              location: matchedProp
+                                ? `${matchedProp.zone}, ${matchedProp.state}`
+                                : '',
+                              notes: activeLead.notes,
+                              status: 'Programada',
+                              reminderMinutes: 60,
+                              leadId: activeLead.id,
+                            });
+                            setView('agenda');
+                          }}
+                          className="w-full py-2 px-3 bg-[#161513] text-white text-xs font-semibold hover:bg-[#892B84] transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer"
                         >
-                          Enviar correo
-                        </a>
-                        <a
-                          href={`tel:${activeLead.phone}`}
-                          className="py-2 px-3 border border-[#E6E2E8] text-xs font-semibold text-center text-[#161513] hover:border-[#892B84]"
-                        >
-                          Llamar teléfono
-                        </a>
+                          <Calendar className="w-3.5 h-3.5" />
+                          <span>Agendar en calendario</span>
+                        </button>
+                        <div className="grid grid-cols-2 gap-2">
+                          <a
+                            href={`mailto:${activeLead.email}?subject=Mujer%20Inmobiliaria%20-%20Seguimiento`}
+                            className="py-2 px-3 bg-[#892B84] text-white text-xs font-semibold text-center hover:bg-[#6E206A]"
+                          >
+                            Enviar correo
+                          </a>
+                          <a
+                            href={`tel:${activeLead.phone}`}
+                            className="py-2 px-3 border border-[#E6E2E8] text-xs font-semibold text-center text-[#161513] hover:border-[#892B84]"
+                          >
+                            Llamar teléfono
+                          </a>
+                        </div>
                       </div>
                     </>
                   ) : (

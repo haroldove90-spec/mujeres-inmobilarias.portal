@@ -94,13 +94,36 @@ create table if not exists public.site_content (
   updated_at timestamptz not null default now()
 );
 
--- 7. Row Level Security (RLS)
+-- 7. Agenda de visitas inmobiliarias
+create table if not exists public.appointments (
+  id text primary key,
+  title text not null,
+  client_name text not null,
+  client_phone text not null default '',
+  client_email text not null default '',
+  property_id text null,
+  property_title text null,
+  property_folio text null,
+  advisor_name text not null default '',
+  visit_date text not null,
+  start_time text not null,
+  duration_minutes integer not null default 60,
+  location text not null default '',
+  notes text not null default '',
+  status text not null default 'Programada' check (status in ('Programada', 'Confirmada', 'Completada', 'Cancelada')),
+  reminder_minutes integer not null default 60,
+  lead_id text null,
+  created_at timestamptz not null default now()
+);
+
+-- 8. Row Level Security (RLS)
 alter table public.portal_users enable row level security;
 alter table public.portal_sessions enable row level security;
 alter table public.advisors enable row level security;
 alter table public.properties enable row level security;
 alter table public.leads enable row level security;
 alter table public.site_content enable row level security;
+alter table public.appointments enable row level security;
 
 -- Limpieza idempotente de políticas previas
 drop policy if exists "Public read properties" on public.properties;
@@ -533,5 +556,83 @@ begin
   on conflict (id) do update set
     content = excluded.content,
     updated_at = now();
+end;
+$$;
+
+create or replace function public.admin_list_appointments(p_token text)
+returns setof public.appointments
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+begin
+  perform public.require_admin_role(p_token, false);
+  return query select * from public.appointments order by visit_date asc, start_time asc;
+end;
+$$;
+
+create or replace function public.admin_upsert_appointment(p_token text, p_item jsonb)
+returns void
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+begin
+  perform public.require_admin_role(p_token, false);
+
+  insert into public.appointments (
+    id, title, client_name, client_phone, client_email,
+    property_id, property_title, property_folio, advisor_name,
+    visit_date, start_time, duration_minutes, location,
+    notes, status, reminder_minutes, lead_id
+  )
+  values (
+    p_item->>'id',
+    p_item->>'title',
+    p_item->>'client_name',
+    coalesce(p_item->>'client_phone', ''),
+    coalesce(p_item->>'client_email', ''),
+    nullif(p_item->>'property_id', ''),
+    nullif(p_item->>'property_title', ''),
+    nullif(p_item->>'property_folio', ''),
+    coalesce(p_item->>'advisor_name', ''),
+    p_item->>'visit_date',
+    p_item->>'start_time',
+    coalesce((p_item->>'duration_minutes')::integer, 60),
+    coalesce(p_item->>'location', ''),
+    coalesce(p_item->>'notes', ''),
+    coalesce(p_item->>'status', 'Programada'),
+    coalesce((p_item->>'reminder_minutes')::integer, 60),
+    nullif(p_item->>'lead_id', '')
+  )
+  on conflict (id) do update set
+    title = excluded.title,
+    client_name = excluded.client_name,
+    client_phone = excluded.client_phone,
+    client_email = excluded.client_email,
+    property_id = excluded.property_id,
+    property_title = excluded.property_title,
+    property_folio = excluded.property_folio,
+    advisor_name = excluded.advisor_name,
+    visit_date = excluded.visit_date,
+    start_time = excluded.start_time,
+    duration_minutes = excluded.duration_minutes,
+    location = excluded.location,
+    notes = excluded.notes,
+    status = excluded.status,
+    reminder_minutes = excluded.reminder_minutes,
+    lead_id = excluded.lead_id;
+end;
+$$;
+
+create or replace function public.admin_delete_appointment(p_token text, p_id text)
+returns void
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+begin
+  perform public.require_admin_role(p_token, false);
+  delete from public.appointments where id = p_id;
 end;
 $$;
