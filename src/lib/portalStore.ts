@@ -5,8 +5,10 @@ import {
   DEFAULT_SITE_CONTENT,
 } from '../data/properties';
 import {
+  AdminRole,
   AdminSession,
   Advisor,
+  ClientSession,
   LeadRecord,
   PropertyListing,
   SiteContent,
@@ -18,8 +20,9 @@ const KEYS = {
   advisors: 'mia_portal_advisors_v1',
   leads: 'mia_portal_leads_v1',
   siteContent: 'mia_portal_site_content_v1',
-  session: 'mia_admin_session_v1',
 };
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function readLocal<T>(key: string, fallback: T): T {
   try {
@@ -39,7 +42,6 @@ function writeLocal<T>(key: string, value: T): void {
   }
 }
 
-// Convert Supabase snake_case rows to camelCase app objects
 function mapSupabaseProperty(row: Record<string, unknown>): PropertyListing {
   return {
     id: String(row.id),
@@ -70,6 +72,26 @@ function mapSupabaseProperty(row: Record<string, unknown>): PropertyListing {
     highlights: Array.isArray(row.highlights) ? (row.highlights as string[]) : [],
     description: String(row.description ?? ''),
     updatedAt: String(row.updated_at ?? new Date().toISOString()),
+  };
+}
+
+function mapSupabaseLead(r: Record<string, unknown>): LeadRecord {
+  return {
+    id: String(r.id),
+    name: String(r.name),
+    email: String(r.email),
+    phone: String(r.phone),
+    intent: String(r.intent),
+    source: r.source as LeadRecord['source'],
+    propertyId: r.property_id ? String(r.property_id) : undefined,
+    propertyTitle: r.property_title ? String(r.property_title) : undefined,
+    propertyFolio: r.property_folio ? String(r.property_folio) : undefined,
+    preferredDate: r.preferred_date ? String(r.preferred_date) : undefined,
+    notes: String(r.notes ?? ''),
+    internalNotes: String(r.internal_notes ?? ''),
+    assignedAdvisor: String(r.assigned_advisor ?? ''),
+    status: r.status as LeadRecord['status'],
+    createdAt: String(r.created_at),
   };
 }
 
@@ -104,7 +126,195 @@ function toSupabaseProperty(item: PropertyListing) {
   };
 }
 
-export async function loadPortalData(): Promise<{
+export async function loginAdminAccount(
+  username: string,
+  password: string
+): Promise<{ ok: true; session: AdminSession } | { ok: false; error: string }> {
+  if (!isSupabaseConfigured || !supabase) {
+    return {
+      ok: false,
+      error: 'Configura las variables de Supabase para iniciar sesión.',
+    };
+  }
+
+  const { data, error } = await supabase.rpc('login_portal_user', {
+    p_username: username.trim(),
+    p_password: password,
+    p_expected_scope: 'admin',
+  });
+
+  if (error) {
+    return {
+      ok: false,
+      error:
+        'No se pudo validar el acceso en Supabase. Verifica que ejecutaste el script SQL en tu proyecto.',
+    };
+  }
+
+  const res = data as {
+    ok?: boolean;
+    error?: string;
+    token?: string;
+    user?: {
+      id: string;
+      username: string;
+      fullName: string;
+      email: string;
+      role: AdminRole;
+    };
+  } | null;
+
+  if (!res?.ok || !res.user || !res.token) {
+    return {
+      ok: false,
+      error: res?.error ?? 'Usuario o contraseña incorrectos.',
+    };
+  }
+
+  return {
+    ok: true,
+    session: {
+      id: res.user.id,
+      username: res.user.username,
+      email: res.user.email,
+      name: res.user.fullName,
+      role: res.user.role,
+      token: res.token,
+    },
+  };
+}
+
+export async function registerClientAccount(payload: {
+  fullName: string;
+  email: string;
+  username: string;
+  password: string;
+  whatsapp: string;
+}): Promise<{ ok: true; session: ClientSession } | { ok: false; error: string }> {
+  if (!isSupabaseConfigured || !supabase) {
+    return {
+      ok: false,
+      error: 'Configura Supabase para registrar clientes.',
+    };
+  }
+
+  const { data, error } = await supabase.rpc('register_client_user', {
+    p_full_name: payload.fullName.trim(),
+    p_email: payload.email.trim(),
+    p_username: payload.username.trim(),
+    p_password: payload.password,
+    p_whatsapp: payload.whatsapp.trim(),
+  });
+
+  if (error) {
+    return {
+      ok: false,
+      error:
+        'No se pudo completar el registro en Supabase. Verifica que ejecutaste el script SQL en tu proyecto.',
+    };
+  }
+
+  const res = data as {
+    ok?: boolean;
+    error?: string;
+    token?: string;
+    user?: {
+      id: string;
+      username: string;
+      fullName: string;
+      email: string;
+      whatsapp: string;
+    };
+  } | null;
+
+  if (!res?.ok || !res.user || !res.token) {
+    return {
+      ok: false,
+      error: res?.error ?? 'No fue posible crear tu cuenta.',
+    };
+  }
+
+  return {
+    ok: true,
+    session: {
+      id: res.user.id,
+      username: res.user.username,
+      fullName: res.user.fullName,
+      email: res.user.email,
+      whatsapp: res.user.whatsapp,
+      token: res.token,
+    },
+  };
+}
+
+export async function loginClientAccount(
+  username: string,
+  password: string
+): Promise<{ ok: true; session: ClientSession } | { ok: false; error: string }> {
+  if (!isSupabaseConfigured || !supabase) {
+    return {
+      ok: false,
+      error: 'Configura Supabase para iniciar sesión.',
+    };
+  }
+
+  const { data, error } = await supabase.rpc('login_portal_user', {
+    p_username: username.trim(),
+    p_password: password,
+    p_expected_scope: 'client',
+  });
+
+  if (error) {
+    return {
+      ok: false,
+      error:
+        'No se pudo validar tu acceso en Supabase. Verifica que ejecutaste el script SQL en tu proyecto.',
+    };
+  }
+
+  const res = data as {
+    ok?: boolean;
+    error?: string;
+    token?: string;
+    user?: {
+      id: string;
+      username: string;
+      fullName: string;
+      email: string;
+      whatsapp: string;
+    };
+  } | null;
+
+  if (!res?.ok || !res.user || !res.token) {
+    return {
+      ok: false,
+      error: res?.error ?? 'Usuario o contraseña incorrectos.',
+    };
+  }
+
+  return {
+    ok: true,
+    session: {
+      id: res.user.id,
+      username: res.user.username,
+      fullName: res.user.fullName,
+      email: res.user.email,
+      whatsapp: res.user.whatsapp,
+      token: res.token,
+    },
+  };
+}
+
+export async function logoutPortalToken(token?: string): Promise<void> {
+  if (!token || !isSupabaseConfigured || !supabase) return;
+  try {
+    await supabase.rpc('logout_portal_user', { p_token: token });
+  } catch {
+    // Ignore logout network error gracefully
+  }
+}
+
+export async function loadPortalData(adminToken?: string): Promise<{
   properties: PropertyListing[];
   advisors: Advisor[];
   leads: LeadRecord[];
@@ -125,39 +335,45 @@ export async function loadPortalData(): Promise<{
   }
 
   try {
+    const propsPromise = adminToken
+      ? supabase.rpc('admin_list_properties', { p_token: adminToken })
+      : supabase.from('properties').select('*').order('featured', { ascending: false });
+
+    const advPromise = adminToken
+      ? supabase.rpc('admin_list_advisors', { p_token: adminToken })
+      : supabase.from('advisors').select('*').order('name');
+
+    const leadsPromise = adminToken
+      ? supabase.rpc('admin_list_leads', { p_token: adminToken })
+      : Promise.resolve({ data: null });
+
+    const cmsPromise = supabase
+      .from('site_content')
+      .select('content')
+      .eq('id', 'main')
+      .maybeSingle();
+
     const [propsRes, advRes, leadsRes, cmsRes] = await Promise.all([
-      supabase.from('properties').select('*').order('featured', { ascending: false }),
-      supabase.from('advisors').select('*').order('name'),
-      supabase.from('leads').select('*').order('created_at', { ascending: false }),
-      supabase.from('site_content').select('content').eq('id', 'main').maybeSingle(),
+      propsPromise,
+      advPromise,
+      leadsPromise,
+      cmsPromise,
     ]);
 
     return {
       properties:
-        propsRes.data && propsRes.data.length > 0
-          ? propsRes.data.map(mapSupabaseProperty)
+        Array.isArray(propsRes.data) && propsRes.data.length > 0
+          ? propsRes.data.map((row) => mapSupabaseProperty(row as Record<string, unknown>))
           : localProps,
       advisors:
-        advRes.data && advRes.data.length > 0 ? (advRes.data as Advisor[]) : localAdvisors,
+        Array.isArray(advRes.data) && advRes.data.length > 0
+          ? (advRes.data as Advisor[])
+          : localAdvisors,
       leads:
-        leadsRes.data && leadsRes.data.length > 0
-          ? leadsRes.data.map((r) => ({
-              id: String(r.id),
-              name: String(r.name),
-              email: String(r.email),
-              phone: String(r.phone),
-              intent: String(r.intent),
-              source: r.source as LeadRecord['source'],
-              propertyId: r.property_id ? String(r.property_id) : undefined,
-              propertyTitle: r.property_title ? String(r.property_title) : undefined,
-              propertyFolio: r.property_folio ? String(r.property_folio) : undefined,
-              preferredDate: r.preferred_date ? String(r.preferred_date) : undefined,
-              notes: String(r.notes ?? ''),
-              internalNotes: String(r.internal_notes ?? ''),
-              assignedAdvisor: String(r.assigned_advisor ?? ''),
-              status: r.status as LeadRecord['status'],
-              createdAt: String(r.created_at),
-            }))
+        Array.isArray(leadsRes.data) && leadsRes.data.length > 0
+          ? leadsRes.data.map((row) => mapSupabaseLead(row as Record<string, unknown>))
+          : adminToken
+          ? []
           : localLeads,
       siteContent:
         cmsRes.data && cmsRes.data.content
@@ -174,13 +390,10 @@ export async function loadPortalData(): Promise<{
   }
 }
 
-export async function savePropertiesList(list: PropertyListing[]): Promise<void> {
-  writeLocal(KEYS.properties, list);
-}
-
 export async function upsertProperty(
   item: PropertyListing,
-  currentList: PropertyListing[]
+  currentList: PropertyListing[],
+  adminToken?: string
 ): Promise<PropertyListing[]> {
   const exists = currentList.some((p) => p.id === item.id);
   const next = exists
@@ -188,28 +401,36 @@ export async function upsertProperty(
     : [item, ...currentList];
   writeLocal(KEYS.properties, next);
 
-  if (isSupabaseConfigured && supabase) {
-    await supabase.from('properties').upsert(toSupabaseProperty(item));
+  if (isSupabaseConfigured && supabase && adminToken) {
+    await supabase.rpc('admin_upsert_property', {
+      p_token: adminToken,
+      p_item: toSupabaseProperty(item),
+    });
   }
   return next;
 }
 
 export async function removeProperty(
   id: string,
-  currentList: PropertyListing[]
+  currentList: PropertyListing[],
+  adminToken?: string
 ): Promise<PropertyListing[]> {
   const next = currentList.filter((p) => p.id !== id);
   writeLocal(KEYS.properties, next);
 
-  if (isSupabaseConfigured && supabase) {
-    await supabase.from('properties').delete().eq('id', id);
+  if (isSupabaseConfigured && supabase && adminToken) {
+    await supabase.rpc('admin_delete_property', {
+      p_token: adminToken,
+      p_id: id,
+    });
   }
   return next;
 }
 
 export async function upsertAdvisor(
   advisor: Advisor,
-  currentList: Advisor[]
+  currentList: Advisor[],
+  adminToken?: string
 ): Promise<Advisor[]> {
   const exists = currentList.some((a) => a.id === advisor.id);
   const next = exists
@@ -217,18 +438,28 @@ export async function upsertAdvisor(
     : [...currentList, advisor];
   writeLocal(KEYS.advisors, next);
 
-  if (isSupabaseConfigured && supabase) {
-    await supabase.from('advisors').upsert(advisor);
+  if (isSupabaseConfigured && supabase && adminToken) {
+    await supabase.rpc('admin_upsert_advisor', {
+      p_token: adminToken,
+      p_item: advisor,
+    });
   }
   return next;
 }
 
-export async function removeAdvisor(id: string, currentList: Advisor[]): Promise<Advisor[]> {
+export async function removeAdvisor(
+  id: string,
+  currentList: Advisor[],
+  adminToken?: string
+): Promise<Advisor[]> {
   const next = currentList.filter((a) => a.id !== id);
   writeLocal(KEYS.advisors, next);
 
-  if (isSupabaseConfigured && supabase) {
-    await supabase.from('advisors').delete().eq('id', id);
+  if (isSupabaseConfigured && supabase && adminToken) {
+    await supabase.rpc('admin_delete_advisor', {
+      p_token: adminToken,
+      p_id: id,
+    });
   }
   return next;
 }
@@ -269,31 +500,33 @@ export async function createLead(
 
 export async function updateLead(
   lead: LeadRecord,
-  currentList: LeadRecord[]
+  currentList: LeadRecord[],
+  adminToken?: string
 ): Promise<LeadRecord[]> {
   const next = currentList.map((item) => (item.id === lead.id ? lead : item));
   writeLocal(KEYS.leads, next);
 
-  if (isSupabaseConfigured && supabase) {
-    await supabase
-      .from('leads')
-      .update({
-        status: lead.status,
-        internal_notes: lead.internalNotes,
-        assigned_advisor: lead.assignedAdvisor,
-      })
-      .eq('id', lead.id);
+  if (isSupabaseConfigured && supabase && adminToken && UUID_RE.test(lead.id)) {
+    await supabase.rpc('admin_update_lead', {
+      p_token: adminToken,
+      p_id: lead.id,
+      p_status: lead.status,
+      p_internal_notes: lead.internalNotes,
+      p_assigned_advisor: lead.assignedAdvisor,
+    });
   }
   return next;
 }
 
-export async function saveSiteContent(content: SiteContent): Promise<void> {
+export async function saveSiteContent(
+  content: SiteContent,
+  adminToken?: string
+): Promise<void> {
   writeLocal(KEYS.siteContent, content);
-  if (isSupabaseConfigured && supabase) {
-    await supabase.from('site_content').upsert({
-      id: 'main',
-      content,
-      updated_at: new Date().toISOString(),
+  if (isSupabaseConfigured && supabase && adminToken) {
+    await supabase.rpc('admin_save_site_content', {
+      p_token: adminToken,
+      p_content: content,
     });
   }
 }
@@ -315,16 +548,4 @@ export async function resetAllPortalData(): Promise<{
     leads: DEFAULT_LEADS,
     siteContent: DEFAULT_SITE_CONTENT,
   };
-}
-
-export function getSavedAdminSession(): AdminSession | null {
-  return readLocal<AdminSession | null>(KEYS.session, null);
-}
-
-export function saveAdminSession(session: AdminSession | null): void {
-  if (!session) {
-    localStorage.removeItem(KEYS.session);
-    return;
-  }
-  writeLocal(KEYS.session, session);
 }

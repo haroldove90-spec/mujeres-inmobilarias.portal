@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Lock } from 'lucide-react';
-import { AdminRole, AdminSession } from '../../types/portal';
-import { isSupabaseConfigured, supabase } from '../../lib/supabase';
+import { ArrowLeft, Eye, EyeOff, Lock } from 'lucide-react';
+import { AdminSession } from '../../types/portal';
+import { loginAdminAccount } from '../../lib/portalStore';
 import { BrandLogo } from '../BrandLogo';
 
 interface AdminLoginProps {
@@ -10,16 +10,16 @@ interface AdminLoginProps {
 }
 
 export const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin, onBackToPortal }) => {
-  const [email, setEmail] = useState('direccion@mujerinmobiliariayasociadas.com');
-  const [password, setPassword] = useState(isSupabaseConfigured ? '' : 'admin2026');
-  const [role, setRole] = useState<AdminRole>('administradora');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.includes('@') || (isSupabaseConfigured && password.trim().length < 4)) {
-      setError('Ingresa un correo válido y una contraseña de al menos 4 caracteres.');
+    if (!username.trim() || password.length < 4) {
+      setError('Ingresa tu usuario y contraseña para continuar.');
       return;
     }
 
@@ -27,35 +27,12 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin, onBackToPortal 
     setLoading(true);
 
     try {
-      if (isSupabaseConfigured && supabase) {
-        const { data, error: authErr } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password,
-        });
-        if (authErr || !data.user) {
-          setError('Credenciales incorrectas o cuenta no autorizada.');
-          setLoading(false);
-          return;
-        }
-        onLogin({
-          email: data.user.email ?? email.trim(),
-          name:
-            (data.user.user_metadata?.full_name as string | undefined) ??
-            'Dirección General',
-          role:
-            (data.user.user_metadata?.role as AdminRole | undefined) ?? 'administradora',
-        });
+      const result = await loginAdminAccount(username, password);
+      if (!result.ok) {
+        setError(result.error);
         return;
       }
-
-      onLogin({
-        email: email.trim(),
-        name:
-          role === 'administradora'
-            ? 'Dirección General'
-            : 'Sofía Mendoza Villalobos',
-        role,
-      });
+      onLogin(result.session);
     } finally {
       setLoading(false);
     }
@@ -79,63 +56,26 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin, onBackToPortal 
           <BrandLogo className="h-11 w-auto" />
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-[#892B84] font-semibold">
-              Panel Autoadministrable
+              Acceso Privado
             </p>
             <h1 className="mt-1 text-2xl font-medium text-[#161513]">
-              Acceso a Administración
+              Administración del Portal
             </h1>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {!isSupabaseConfigured && (
-            <div>
-              <span className="block text-xs font-medium text-[#57534E] mb-1.5">
-                Perfil de acceso
-              </span>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRole('administradora');
-                    setEmail('direccion@mujerinmobiliariayasociadas.com');
-                  }}
-                  className={`py-2 px-3 text-xs font-semibold border transition-colors cursor-pointer ${
-                    role === 'administradora'
-                      ? 'bg-[#892B84] text-white border-[#892B84]'
-                      : 'bg-[#F9F8FA] text-[#161513] border-[#E6E2E8]'
-                  }`}
-                >
-                  Administradora
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRole('asesora');
-                    setEmail('sofia@mujerinmobiliariayasociadas.com');
-                  }}
-                  className={`py-2 px-3 text-xs font-semibold border transition-colors cursor-pointer ${
-                    role === 'asesora'
-                      ? 'bg-[#892B84] text-white border-[#892B84]'
-                      : 'bg-[#F9F8FA] text-[#161513] border-[#E6E2E8]'
-                  }`}
-                >
-                  Asesora
-                </button>
-              </div>
-            </div>
-          )}
-
           <div>
-            <label htmlFor="admin-email" className="block text-xs text-[#57534E] mb-1.5">
-              Correo institucional
+            <label htmlFor="admin-username" className="block text-xs text-[#57534E] mb-1.5">
+              Usuario
             </label>
             <input
-              id="admin-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="direccion@mujerinmobiliariayasociadas.com"
+              id="admin-username"
+              type="text"
+              autoComplete="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Ingresa tu usuario"
               className="w-full px-3.5 py-2.5 text-sm bg-[#F9F8FA] border border-[#E6E2E8] text-[#161513] focus:outline-none focus:border-[#892B84]"
             />
           </div>
@@ -144,18 +84,25 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin, onBackToPortal 
             <label htmlFor="admin-password" className="block text-xs text-[#57534E] mb-1.5">
               Contraseña
             </label>
-            <input
-              id="admin-password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={
-                isSupabaseConfigured
-                  ? 'Ingresa tu contraseña'
-                  : 'Mínimo 4 caracteres (vista previa)'
-              }
-              className="w-full px-3.5 py-2.5 text-sm bg-[#F9F8FA] border border-[#E6E2E8] text-[#161513] focus:outline-none focus:border-[#892B84]"
-            />
+            <div className="relative">
+              <input
+                id="admin-password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full pl-3.5 pr-11 py-2.5 text-sm bg-[#F9F8FA] border border-[#E6E2E8] text-[#161513] focus:outline-none focus:border-[#892B84]"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-8 h-8 inline-flex items-center justify-center text-[#57534E] hover:text-[#892B84] cursor-pointer"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
 
           {error && <p className="text-xs text-[#DC2626]">{error}</p>}
@@ -166,20 +113,13 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin, onBackToPortal 
             className="w-full py-3 px-4 bg-[#892B84] text-white text-xs font-semibold hover:bg-[#6E206A] transition-colors inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
           >
             <Lock className="w-3.5 h-3.5" />
-            <span>{loading ? 'Verificando...' : 'Entrar al panel'}</span>
+            <span>{loading ? 'Verificando acceso...' : 'Iniciar sesión'}</span>
           </button>
         </form>
-
-        {!isSupabaseConfigured && (
-          <p className="text-[11px] text-[#57534E] leading-relaxed border-t border-[#E6E2E8] pt-4">
-            Modo de trabajo local activo. Todos los cambios en propiedades, precios, prospectos y
-            contenidos se guardan en este navegador hasta conectar tu proyecto de Supabase.
-          </p>
-        )}
       </div>
 
       <p className="text-center text-xs text-[#57534E]">
-        Mujer Inmobiliaria &amp; Asociadas · Administración Interna
+        Mujer Inmobiliaria &amp; Asociadas · Sistema Privado
       </p>
     </div>
   );

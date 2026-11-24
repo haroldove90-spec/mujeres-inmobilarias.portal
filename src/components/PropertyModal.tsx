@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { X, Check, Building2 } from 'lucide-react';
-import { LeadRecord, PropertyListing } from '../types/portal';
+import { ClientSession, LeadRecord, PropertyListing } from '../types/portal';
 import { formatMxn } from '../data/properties';
 
 interface PropertyModalProps {
   property: PropertyListing | null;
+  clientSession?: ClientSession | null;
   onClose: () => void;
   onCreateLead: (
     lead: Omit<LeadRecord, 'id' | 'createdAt' | 'status' | 'internalNotes'>
@@ -13,6 +14,7 @@ interface PropertyModalProps {
 
 export const PropertyModal: React.FC<PropertyModalProps> = ({
   property,
+  clientSession,
   onClose,
   onCreateLead,
 }) => {
@@ -30,11 +32,11 @@ export const PropertyModal: React.FC<PropertyModalProps> = ({
     setActivePhotoIndex(0);
     setSubmitted(false);
     setFormError('');
-    setVisitorName('');
-    setVisitorEmail('');
-    setVisitorPhone('');
+    setVisitorName(clientSession?.fullName ?? '');
+    setVisitorEmail(clientSession?.email ?? '');
+    setVisitorPhone(clientSession?.whatsapp ?? '');
     setPreferredDate('');
-  }, [property?.id]);
+  }, [property?.id, clientSession]);
 
   useEffect(() => {
     if (!property) return;

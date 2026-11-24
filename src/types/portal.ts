@@ -129,7 +129,20 @@ export interface SiteContent {
 }
 
 export interface AdminSession {
+  id: string;
+  username: string;
   email: string;
   name: string;
   role: AdminRole;
+  token: string;
 }
+
+export interface ClientSession {
+  id: string;
+  username: string;
+  fullName: string;
+  email: string;
+  whatsapp: string;
+  token: string;
+}
+

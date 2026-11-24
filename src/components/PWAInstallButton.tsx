@@ -25,7 +25,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 'i
 
   const buttonClasses = {
     header:
-      'inline-flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-2 border border-[#892B84] bg-white text-[#892B84] text-xs font-semibold hover:bg-[#892B84] hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#892B84]',
+      'inline-flex items-center justify-center gap-1.5 px-2 sm:px-3.5 py-2 border border-[#892B84] bg-white text-[#892B84] text-[11px] sm:text-xs font-semibold hover:bg-[#892B84] hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#892B84]',
     inline:
       'inline-flex items-center justify-center gap-2 px-4 py-3 border border-[#892B84] bg-white text-[#892B84] text-xs font-semibold hover:bg-[#892B84] hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer',
     drawer:
@@ -37,7 +37,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 'i
       <button type="button" onClick={handleClick} className={buttonClasses}>
         <Download className="w-3.5 h-3.5 shrink-0" />
         <span className={variant === 'header' ? 'hidden sm:inline' : ''}>Instalar App</span>
-        {variant === 'header' && <span className="sm:hidden">Instalar</span>}
+        {variant === 'header' && <span className="sm:hidden">App</span>}
       </button>
 
       {showGuideModal && (

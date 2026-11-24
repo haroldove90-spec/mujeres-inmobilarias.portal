@@ -32,18 +32,16 @@ import {
 } from './types/portal';
 import {
   createLead,
-  getSavedAdminSession,
   loadPortalData,
+  logoutPortalToken,
   removeAdvisor,
   removeProperty,
   resetAllPortalData,
-  saveAdminSession,
   saveSiteContent,
   updateLead,
   upsertAdvisor,
   upsertProperty,
 } from './lib/portalStore';
-import { isSupabaseConfigured, supabase } from './lib/supabase';
 import { BrandLogo } from './components/BrandLogo';
 import { PropertyCard } from './components/PropertyCard';
 import { PropertyModal } from './components/PropertyModal';
@@ -74,11 +72,9 @@ function checkAdminRoute(): boolean {
 }
 
 export default function App() {
-  // Admin & persistence state
+  // Admin & persistence state (auth tokens kept strictly in memory)
   const [isAdminView, setIsAdminView] = useState<boolean>(checkAdminRoute);
-  const [adminSession, setAdminSession] = useState<AdminSession | null>(() =>
-    getSavedAdminSession()
-  );
+  const [adminSession, setAdminSession] = useState<AdminSession | null>(null);
   const [properties, setProperties] = useState<PropertyListing[]>(DEFAULT_PROPERTIES);
   const [advisors, setAdvisors] = useState<Advisor[]>(DEFAULT_ADVISORS);
   const [leads, setLeads] = useState<LeadRecord[]>(DEFAULT_LEADS);
@@ -118,10 +114,10 @@ export default function App() {
   const [contactError, setContactError] = useState('');
   const [contactSubmitted, setContactSubmitted] = useState(false);
 
-  // Hydrate persisted portal data & Supabase session
+  // Hydrate persisted portal data (and full admin records when signed in)
   useEffect(() => {
     let mounted = true;
-    loadPortalData().then((data) => {
+    loadPortalData(adminSession?.token).then((data) => {
       if (!mounted) return;
       setProperties(data.properties);
       setAdvisors(data.advisors);
@@ -129,27 +125,10 @@ export default function App() {
       setSiteContent(data.siteContent);
     });
 
-    if (isSupabaseConfigured && supabase) {
-      supabase.auth.getSession().then(({ data }) => {
-        if (!mounted || !data.session?.user) return;
-        const user = data.session.user;
-        const restored: AdminSession = {
-          email: user.email ?? '',
-          name:
-            (user.user_metadata?.full_name as string | undefined) ?? 'Dirección General',
-          role:
-            (user.user_metadata?.role as AdminSession['role'] | undefined) ??
-            'administradora',
-        };
-        setAdminSession(restored);
-        saveAdminSession(restored);
-      });
-    }
-
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [adminSession?.token]);
 
   // Sync admin route with URL changes
   useEffect(() => {
@@ -209,24 +188,21 @@ export default function App() {
 
   const handleAdminLogin = (session: AdminSession) => {
     setAdminSession(session);
-    saveAdminSession(session);
   };
 
   const handleAdminLogout = async () => {
-    saveAdminSession(null);
+    const token = adminSession?.token;
     setAdminSession(null);
-    if (isSupabaseConfigured && supabase) {
-      await supabase.auth.signOut();
-    }
+    await logoutPortalToken(token);
   };
 
   const handleSaveProperty = async (item: PropertyListing) => {
-    const next = await upsertProperty(item, properties);
+    const next = await upsertProperty(item, properties, adminSession?.token);
     setProperties(next);
   };
 
   const handleDeleteProperty = async (id: string) => {
-    const next = await removeProperty(id, properties);
+    const next = await removeProperty(id, properties, adminSession?.token);
     setProperties(next);
   };
 
@@ -238,22 +214,22 @@ export default function App() {
   };
 
   const handleUpdateLead = async (lead: LeadRecord) => {
-    const next = await updateLead(lead, leads);
+    const next = await updateLead(lead, leads, adminSession?.token);
     setLeads(next);
   };
 
   const handleSaveAdvisor = async (advisor: Advisor) => {
-    const next = await upsertAdvisor(advisor, advisors);
+    const next = await upsertAdvisor(advisor, advisors, adminSession?.token);
     setAdvisors(next);
   };
 
   const handleDeleteAdvisor = async (id: string) => {
-    const next = await removeAdvisor(id, advisors);
+    const next = await removeAdvisor(id, advisors, adminSession?.token);
     setAdvisors(next);
   };
 
   const handleSaveSiteContent = async (content: SiteContent) => {
-    await saveSiteContent(content);
+    await saveSiteContent(content, adminSession?.token);
     setSiteContent(content);
   };
 
