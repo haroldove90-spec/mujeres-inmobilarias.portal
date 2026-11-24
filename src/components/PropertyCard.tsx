@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Bookmark, Building2, ArrowUpRight } from 'lucide-react';
-import { PropertyListing, formatMxn } from '../data/properties';
+import { PropertyListing } from '../types/portal';
+import { formatMxn } from '../data/properties';
 
 interface PropertyCardProps {
   property: PropertyListing;
@@ -67,6 +68,12 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
             <span>{property.state}</span>
             <span aria-hidden="true">·</span>
             <span className="font-mono text-[11px] tabular-nums">{property.folio}</span>
+            {property.status !== 'Disponible' && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span className="font-medium text-[#D97706]">{property.status}</span>
+              </>
+            )}
           </div>
 
           <h3 className="mt-2.5 text-xl sm:text-2xl font-medium tracking-tight text-[#161513] leading-snug">

@@ -1,35 +1,52 @@
-export type OperationType = 'Venta' | 'Renta' | 'Terreno';
-export type RegionState = 'Querétaro' | 'Yucatán' | 'Estado de México';
-
-export interface PropertyListing {
-  id: string;
-  folio: string;
-  title: string;
-  operation: OperationType;
-  category: 'Residencial' | 'Villa' | 'Terreno' | 'Corporativo';
-  state: RegionState;
-  zone: string;
-  priceMxn: number;
-  priceSuffix?: string;
-  areaLandM2: number;
-  areaConstM2: number;
-  bedrooms: number;
-  bathrooms: number;
-  parking: number;
-  image: string;
-  legalStatus: string;
-  advisor: {
-    name: string;
-    role: string;
-    license: string;
-  };
-  highlights: string[];
-  description: string;
-}
+import {
+  Advisor,
+  LeadRecord,
+  PropertyListing,
+  SiteContent,
+} from '../types/portal';
 
 export const HERO_IMAGE = '/src/assets/images/hero_modern_residence_1794951601307.jpg';
 
-export const PROPERTIES: PropertyListing[] = [
+export const DEFAULT_ADVISORS: Advisor[] = [
+  {
+    id: 'adv-sofia',
+    name: 'Sofía Mendoza Villalobos',
+    role: 'Directora de Portafolio Residencial',
+    license: 'Lic. Inmobiliaria Qro. 0418',
+    email: 'sofia@mujerinmobiliariayasociadas.com',
+    phone: '+52 442 275 9370',
+    active: true,
+  },
+  {
+    id: 'adv-valentina',
+    name: 'Valentina Peón Escalante',
+    role: 'Socia Regional Península',
+    license: 'Registro Estatal Yuc. 1192',
+    email: 'valentina@mujerinmobiliariayasociadas.com',
+    phone: '+52 999 412 8830',
+    active: true,
+  },
+  {
+    id: 'adv-camila',
+    name: 'Camila Aguirre Lozano',
+    role: 'Socia Senior Valle de México',
+    license: 'Certificación AMPI 2026',
+    email: 'camila@mujerinmobiliariayasociadas.com',
+    phone: '+52 55 4891 2240',
+    active: true,
+  },
+  {
+    id: 'adv-renata',
+    name: 'Renata Ibarra Domínguez',
+    role: 'Especialista en Tierra & Desarrollos',
+    license: 'Valuación & Factibilidad',
+    email: 'renata@mujerinmobiliariayasociadas.com',
+    phone: '+52 442 318 6512',
+    active: true,
+  },
+];
+
+export const DEFAULT_PROPERTIES: PropertyListing[] = [
   {
     id: 'qro-campanario-01',
     folio: 'MIA-QRO-104',
@@ -45,7 +62,14 @@ export const PROPERTIES: PropertyListing[] = [
     bathrooms: 4.5,
     parking: 4,
     image: '/src/assets/images/prop_queretaro_campanario_1794951601828.jpg',
+    gallery: [
+      '/src/assets/images/prop_queretaro_campanario_1794951601828.jpg',
+      '/src/assets/images/hero_modern_residence_1794951601307.jpg',
+    ],
+    status: 'Disponible',
+    featured: true,
     legalStatus: 'Escritura pública · Libre de gravamen',
+    advisorId: 'adv-sofia',
     advisor: {
       name: 'Sofía Mendoza Villalobos',
       role: 'Directora de Portafolio Residencial',
@@ -59,6 +83,7 @@ export const PROPERTIES: PropertyListing[] = [
     ],
     description:
       'Residencia contemporánea concebida alrededor de un patio central con olivos maduros y ventanales de piso a techo. Su orientación sur-oriente privilegia la iluminación natural sin ganancia térmica excesiva, integrando áreas sociales con jardín privado.',
+    updatedAt: '2026-11-20T12:00:00Z',
   },
   {
     id: 'yuc-merida-02',
@@ -75,7 +100,11 @@ export const PROPERTIES: PropertyListing[] = [
     bathrooms: 3.5,
     parking: 3,
     image: '/src/assets/images/prop_merida_yucatan_1794951602848.jpg',
+    gallery: ['/src/assets/images/prop_merida_yucatan_1794951602848.jpg'],
+    status: 'Disponible',
+    featured: true,
     legalStatus: 'Escritura definitiva · Dictamen predial al día',
+    advisorId: 'adv-valentina',
     advisor: {
       name: 'Valentina Peón Escalante',
       role: 'Socia Regional Península',
@@ -89,6 +118,7 @@ export const PROPERTIES: PropertyListing[] = [
     ],
     description:
       'Arquitectura yucateca contemporánea ubicada en una privada arbolada de Temozón Norte, a doce minutos de la costa y cercana a centros hospitalarios y universidades de primer nivel.',
+    updatedAt: '2026-11-19T15:30:00Z',
   },
   {
     id: 'mex-esmeralda-03',
@@ -105,7 +135,11 @@ export const PROPERTIES: PropertyListing[] = [
     bathrooms: 5,
     parking: 5,
     image: '/src/assets/images/prop_edomex_esmeralda_1794951603158.jpg',
+    gallery: ['/src/assets/images/prop_edomex_esmeralda_1794951603158.jpg'],
+    status: 'Disponible',
+    featured: true,
     legalStatus: 'Escritura pública · Régimen en condominio',
+    advisorId: 'adv-camila',
     advisor: {
       name: 'Camila Aguirre Lozano',
       role: 'Socia Senior Valle de México',
@@ -119,6 +153,7 @@ export const PROPERTIES: PropertyListing[] = [
     ],
     description:
       'Emplazada sobre una ladera rodeada de pinos en Zona Esmeralda, esta propiedad combina vistas limpias hacia la cañada con una distribución funcional de tres niveles y máxima privacidad.',
+    updatedAt: '2026-11-18T10:15:00Z',
   },
   {
     id: 'qro-juriquilla-04',
@@ -136,7 +171,11 @@ export const PROPERTIES: PropertyListing[] = [
     bathrooms: 4,
     parking: 3,
     image: '/src/assets/images/hero_modern_residence_1794951601307.jpg',
+    gallery: ['/src/assets/images/hero_modern_residence_1794951601307.jpg'],
+    status: 'Disponible',
+    featured: false,
     legalStatus: 'Contrato con póliza jurídica incluida',
+    advisorId: 'adv-sofia',
     advisor: {
       name: 'Sofía Mendoza Villalobos',
       role: 'Directora de Portafolio Residencial',
@@ -150,6 +189,7 @@ export const PROPERTIES: PropertyListing[] = [
     ],
     description:
       'Disponible para arrendamiento habitacional de mediano o largo plazo. Ofrece recámara principal en planta baja, jardín xerófilo de bajo mantenimiento y conectividad inmediata hacia parques industriales y colegios internacionales.',
+    updatedAt: '2026-11-17T09:00:00Z',
   },
   {
     id: 'qro-zibata-05',
@@ -166,7 +206,11 @@ export const PROPERTIES: PropertyListing[] = [
     bathrooms: 0,
     parking: 0,
     image: '/src/assets/images/prop_terreno_desarrollo_1794951602871.jpg',
+    gallery: ['/src/assets/images/prop_terreno_desarrollo_1794951602871.jpg'],
+    status: 'Disponible',
+    featured: false,
     legalStatus: 'Título de propiedad · Uso de suelo H2 habitacional',
+    advisorId: 'adv-renata',
     advisor: {
       name: 'Renata Ibarra Domínguez',
       role: 'Especialista en Tierra & Desarrollos',
@@ -180,6 +224,7 @@ export const PROPERTIES: PropertyListing[] = [
     ],
     description:
       'Lote unifamiliar de gran formato frente a área verde consolidada. Nuestro equipo acompaña tanto la adquisición jurídica como la vinculación con despachos arquitectónicos y estudios de mecánica de suelos.',
+    updatedAt: '2026-11-16T16:40:00Z',
   },
   {
     id: 'yuc-altabrisa-06',
@@ -197,7 +242,11 @@ export const PROPERTIES: PropertyListing[] = [
     bathrooms: 2.5,
     parking: 2,
     image: '/src/assets/images/prop_queretaro_campanario_1794951601828.jpg',
+    gallery: ['/src/assets/images/prop_queretaro_campanario_1794951601828.jpg'],
+    status: 'Apartada',
+    featured: false,
     legalStatus: 'Facturación fiscal disponible · Contrato flexible',
+    advisorId: 'adv-valentina',
     advisor: {
       name: 'Valentina Peón Escalante',
       role: 'Socia Regional Península',
@@ -211,134 +260,221 @@ export const PROPERTIES: PropertyListing[] = [
     ],
     description:
       'Propiedad versátil diseñada para firmas de consultoría, notarías o residencia temporal de alta gama en el corredor financiero de mayor dinamismo del sureste.',
+    updatedAt: '2026-11-15T11:20:00Z',
   },
 ];
 
-export type NosotrasTabId = 'mision' | 'vision' | 'valores' | 'alianzas';
-
-export interface NosotrasPillar {
-  id: NosotrasTabId;
-  label: string;
-  kicker: string;
-  title: string;
-  body: string;
-  highlights: string[];
-}
-
-export const NOSOTRAS_PILLARS: NosotrasPillar[] = [
+export const DEFAULT_LEADS: LeadRecord[] = [
   {
-    id: 'mision',
-    label: 'Misión',
-    kicker: '01 · Propósito Institucional',
-    title: 'Impulsar el patrimonio de nuestros clientes y el liderazgo profesional en bienes raíces.',
-    body: 'Construimos una organización centrada en inspirar y respaldar a nuestras asociadas y clientes, promoviendo buenas prácticas inmobiliarias, acompañamiento cercano y decisiones patrimoniales seguras.',
-    highlights: [
-      'Acompañamiento colaborativo en cada etapa de compra, venta o renta',
-      'Prácticas profesionales enfocadas en la confianza y el trato humano',
-      'Impulso continuo al desarrollo ético de mujeres especialistas del sector',
-    ],
+    id: 'lead-demo-1',
+    name: 'Mariana Salcedo Ortiz',
+    email: 'mariana.salcedo@ejemplo.mx',
+    phone: '+52 442 389 1120',
+    intent: 'Recorrido privado',
+    source: 'Ficha de propiedad',
+    propertyId: 'qro-campanario-01',
+    propertyTitle: 'Residencia Patio de Olivos',
+    propertyFolio: 'MIA-QRO-104',
+    preferredDate: '2026-11-28',
+    notes: 'Interesada en conocer el estatus de escrituración y visitar el sábado por la mañana.',
+    internalNotes: 'Confirmar cita con propietarios antes del viernes.',
+    assignedAdvisor: 'Sofía Mendoza Villalobos',
+    status: 'Visita agendada',
+    createdAt: '2026-11-23T17:20:00Z',
   },
   {
-    id: 'vision',
-    label: 'Visión',
-    kicker: '02 · Proyección de Firma',
-    title: 'Representar cada operación con transparencia, eficiencia y soluciones duraderas.',
-    body: 'Nuestra meta es consolidar un estándar de servicio inmobiliario que responda con rigor a las exigencias del mercado actual, generando valor sostenible para familias, inversionistas y desarrolladores.',
-    highlights: [
-      'Representación honesta y clara ante compradores, propietarios y notarías',
-      'Procesos ágiles respaldados por análisis de mercado y dictamen previo',
-      'Crecimiento responsable con impacto positivo en Querétaro y la República Mexicana',
-    ],
-  },
-  {
-    id: 'valores',
-    label: 'Valores',
-    kicker: '03 · Principios Rectores',
-    title: 'Seis compromisos no negociables en cada operación inmobiliaria.',
-    body: 'Cada expediente, avalúo y negociación se rige por criterios verificables de integridad profesional y responsabilidad social.',
-    highlights: [
-      'Transparencia y Honestidad en condiciones, comisiones y documentación',
-      'Ética y Profesionalismo acreditados durante toda la intermediación',
-      'Eficiencia operativa y Responsabilidad social en cada comunidad donde operamos',
-    ],
-  },
-  {
-    id: 'alianzas',
-    label: 'Alianzas',
-    kicker: '04 · Red Estratégica',
-    title: 'Alianzas sólidas con desarrolladores, notarías y firmas líderes del sector.',
-    body: 'Colaboramos estrechamente con desarrolladores certificados, especialistas financieros, despachos jurídicos y redes inmobiliarias para garantizar operaciones excepcionales.',
-    highlights: [
-      'Acceso directo a desarrollos residenciales y tierra de inversión verificada',
-      'Coordinación ágil con notarías públicas y peritos valuadores certificados',
-      'Red de colaboración interestatal entre Querétaro, Yucatán y Estado de México',
-    ],
+    id: 'lead-demo-2',
+    name: 'Alejandra Torres Quiroz',
+    email: 'ale.torres@ejemplo.mx',
+    phone: '+52 55 3102 4490',
+    intent: 'Inversión en terrenos y desarrollos',
+    source: 'Contacto general',
+    notes: 'Busco macrolotes residenciales en Querétaro o Mérida entre 4 y 7 millones MXN.',
+    internalNotes: '',
+    assignedAdvisor: 'Renata Ibarra Domínguez',
+    status: 'Nuevo',
+    createdAt: '2026-11-24T08:45:00Z',
   },
 ];
 
-export const VALORES_LIST = [
-  { number: '01', name: 'Transparencia', detail: 'Información clara en precios, gravámenes y costos notariales.' },
-  { number: '02', name: 'Ética', detail: 'Actuación íntegra cuidando el patrimonio de todas las partes.' },
-  { number: '03', name: 'Honestidad', detail: 'Valuaciones realistas sin falsas expectativas comerciales.' },
-  { number: '04', name: 'Profesionalismo', detail: 'Asesoras capacitadas en normativa comercial, fiscal y registral.' },
-  { number: '05', name: 'Eficiencia', detail: 'Procesos ordenados desde la prospección hasta la escrituración.' },
-  { number: '06', name: 'Responsabilidad', detail: 'Empresa socialmente responsable enfocada en relaciones duraderas.' },
-];
-
-export interface ServiceItem {
-  number: string;
-  title: string;
-  summary: string;
-  deliverables: string[];
-  contactIntent: string;
-}
-
-export const SERVICES_LIST: ServiceItem[] = [
-  {
-    number: '01.',
-    title: 'Asesoría Gratuita y Personalizada',
-    summary:
-      'Diagnóstico inicial sin costo para compra, venta o renta. Filtramos opciones reales conforme a tu presupuesto, zona y horizonte patrimonial.',
-    deliverables: [
-      'Perfilamiento patrimonial y selección curada de inmuebles',
-      'Acompañamiento presencial y coordinación de recorridos privados',
-    ],
-    contactIntent: 'Comprar propiedad',
-  },
-  {
-    number: '02.',
-    title: 'Gestión de Inmuebles, Terrenos y Desarrollos',
-    summary:
-      'Comercialización estratégica para propiedades residenciales, espacios corporativos, lotes habitacionales y tierra para desarrollo.',
-    deliverables: [
-      'Difusión calificada en portales y red de inversionistas',
-      'Filtrado de prospectos y negociación directa de ofertas',
-    ],
-    contactIntent: 'Vender mi inmueble',
-  },
-  {
-    number: '03.',
-    title: 'Intermediación y Asesoría Legal',
-    summary:
-      'Blindaje jurídico en operaciones residenciales y comerciales para que compres, vendas o rentes con tranquilidad documental.',
-    deliverables: [
-      'Revisión de escrituras, libertad de gravamen y uso de suelo',
-      'Contratos de compraventa, pólizas jurídicas y seguimiento notarial',
-    ],
-    contactIntent: 'Rentar residencia o espacio',
-  },
-  {
-    number: '04.',
-    title: 'Valuación Comercial y Estrategia de Salida',
-    summary:
-      'Análisis comparativo de mercado por colonia y metro cuadrado para definir precios competitivos y proteger tu plusvalía.',
-    deliverables: [
-      'Opinión de valor con comparables cerrados en escritura',
-      'Orientación fiscal preliminar e integración de expediente completo',
-    ],
-    contactIntent: 'Inversión en terrenos y desarrollos',
-  },
-];
+export const DEFAULT_SITE_CONTENT: SiteContent = {
+  heroEyebrow: 'Santiago de Querétaro · Yucatán · Estado de México',
+  heroTitle: 'Patrimonio inmobiliario con criterio arquitectónico y certeza jurídica.',
+  heroSubtitle:
+    'Firma mexicana dirigida por mujeres especialistas en compra, venta, renta y desarrollos. Acompañamiento gratuito y transparente desde la valuación hasta la firma notarial.',
+  heroImage: HERO_IMAGE,
+  heroImageCaptionZone: 'Cumbres del Lago · Juriquilla, Querétaro',
+  heroImageCaptionTitle: 'Residencia Cantilever & Espejo de Agua',
+  capabilities: [
+    {
+      number: '01',
+      title: 'Asesoría inicial sin costo',
+      description:
+        'Diagnóstico patrimonial personalizado para compradores, propietarios e inversionistas.',
+    },
+    {
+      number: '02',
+      title: 'Valuación comercial real',
+      description:
+        'Análisis comparativo por metro cuadrado y cierres escriturados por corredor.',
+    },
+    {
+      number: '03',
+      title: 'Dictamen legal y fiscal',
+      description:
+        'Revisión previa de gravámenes, escrituras, regímenes y cálculo de impuestos.',
+    },
+    {
+      number: '04',
+      title: 'Red de asesoras en 3 plazas',
+      description:
+        'Operación directa en Querétaro, Mérida y corredores clave del Estado de México.',
+    },
+  ],
+  nosotrasKicker: 'Nosotras · Identidad Institucional',
+  nosotrasHeading: 'Mujeres líderes construyendo certeza patrimonial en México',
+  nosotrasPillars: [
+    {
+      id: 'mision',
+      label: 'Misión',
+      kicker: '01 · Propósito Institucional',
+      title: 'Impulsar el patrimonio de nuestros clientes y el liderazgo profesional en bienes raíces.',
+      body: 'Construimos una organización centrada en inspirar y respaldar a nuestras asociadas y clientes, promoviendo buenas prácticas inmobiliarias, acompañamiento cercano y decisiones patrimoniales seguras.',
+      highlights: [
+        'Acompañamiento colaborativo en cada etapa de compra, venta o renta',
+        'Prácticas profesionales enfocadas en la confianza y el trato humano',
+        'Impulso continuo al desarrollo ético de mujeres especialistas del sector',
+      ],
+    },
+    {
+      id: 'vision',
+      label: 'Visión',
+      kicker: '02 · Proyección de Firma',
+      title: 'Representar cada operación con transparencia, eficiencia y soluciones duraderas.',
+      body: 'Nuestra meta es consolidar un estándar de servicio inmobiliario que responda con rigor a las exigencias del mercado actual, generando valor sostenible para familias, inversionistas y desarrolladores.',
+      highlights: [
+        'Representación honesta y clara ante compradores, propietarios y notarías',
+        'Procesos ágiles respaldados por análisis de mercado y dictamen previo',
+        'Crecimiento responsable con impacto positivo en Querétaro y la República Mexicana',
+      ],
+    },
+    {
+      id: 'valores',
+      label: 'Valores',
+      kicker: '03 · Principios Rectores',
+      title: 'Seis compromisos no negociables en cada operación inmobiliaria.',
+      body: 'Cada expediente, avalúo y negociación se rige por criterios verificables de integridad profesional y responsabilidad social.',
+      highlights: [
+        'Transparencia y Honestidad en condiciones, comisiones y documentación',
+        'Ética y Profesionalismo acreditados durante toda la intermediación',
+        'Eficiencia operativa y Responsabilidad social en cada comunidad donde operamos',
+      ],
+    },
+    {
+      id: 'alianzas',
+      label: 'Alianzas',
+      kicker: '04 · Red Estratégica',
+      title: 'Alianzas sólidas con desarrolladores, notarías y firmas líderes del sector.',
+      body: 'Colaboramos estrechamente con desarrolladores certificados, especialistas financieros, despachos jurídicos y redes inmobiliarias para garantizar operaciones excepcionales.',
+      highlights: [
+        'Acceso directo a desarrollos residenciales y tierra de inversión verificada',
+        'Coordinación ágil con notarías públicas y peritos valuadores certificados',
+        'Red de colaboración interestatal entre Querétaro, Yucatán y Estado de México',
+      ],
+    },
+  ],
+  valoresList: [
+    {
+      number: '01',
+      name: 'Transparencia',
+      detail: 'Información clara en precios, gravámenes y costos notariales.',
+    },
+    {
+      number: '02',
+      name: 'Ética',
+      detail: 'Actuación íntegra cuidando el patrimonio de todas las partes.',
+    },
+    {
+      number: '03',
+      name: 'Honestidad',
+      detail: 'Valuaciones realistas sin falsas expectativas comerciales.',
+    },
+    {
+      number: '04',
+      name: 'Profesionalismo',
+      detail: 'Asesoras capacitadas en normativa comercial, fiscal y registral.',
+    },
+    {
+      number: '05',
+      name: 'Eficiencia',
+      detail: 'Procesos ordenados desde la prospección hasta la escrituración.',
+    },
+    {
+      number: '06',
+      name: 'Responsabilidad',
+      detail: 'Empresa socialmente responsable enfocada en relaciones duraderas.',
+    },
+  ],
+  servicesKicker: 'Servicios Especializados',
+  servicesHeading: 'Soluciones integrales para compra, venta, renta y desarrollos',
+  servicesSubheading:
+    'Asesoría gratuita inicial combinada con representación comercial, valuación técnica y blindaje jurídico.',
+  servicesList: [
+    {
+      number: '01.',
+      title: 'Asesoría Gratuita y Personalizada',
+      summary:
+        'Diagnóstico inicial sin costo para compra, venta o renta. Filtramos opciones reales conforme a tu presupuesto, zona y horizonte patrimonial.',
+      deliverables: [
+        'Perfilamiento patrimonial y selección curada de inmuebles',
+        'Acompañamiento presencial y coordinación de recorridos privados',
+      ],
+      contactIntent: 'Comprar propiedad',
+    },
+    {
+      number: '02.',
+      title: 'Gestión de Inmuebles, Terrenos y Desarrollos',
+      summary:
+        'Comercialización estratégica para propiedades residenciales, espacios corporativos, lotes habitacionales y tierra para desarrollo.',
+      deliverables: [
+        'Difusión calificada en portales y red de inversionistas',
+        'Filtrado de prospectos y negociación directa de ofertas',
+      ],
+      contactIntent: 'Vender mi inmueble',
+    },
+    {
+      number: '03.',
+      title: 'Intermediación y Asesoría Legal',
+      summary:
+        'Blindaje jurídico en operaciones residenciales y comerciales para que compres, vendas o rentes con tranquilidad documental.',
+      deliverables: [
+        'Revisión de escrituras, libertad de gravamen y uso de suelo',
+        'Contratos de compraventa, pólizas jurídicas y seguimiento notarial',
+      ],
+      contactIntent: 'Rentar residencia o espacio',
+    },
+    {
+      number: '04.',
+      title: 'Valuación Comercial y Estrategia de Salida',
+      summary:
+        'Análisis comparativo de mercado por colonia y metro cuadrado para definir precios competitivos y proteger tu plusvalía.',
+      deliverables: [
+        'Opinión de valor con comparables cerrados en escritura',
+        'Orientación fiscal preliminar e integración de expediente completo',
+      ],
+      contactIntent: 'Inversión en terrenos y desarrollos',
+    },
+  ],
+  contactKicker: 'Contacto · Atención Personalizada',
+  contactHeading: 'Conversa con una socia asesora sin costo inicial',
+  contactSubtitle:
+    'Ya sea que busques adquirir patrimonio, comercializar una propiedad o evaluar tierra para desarrollo, asignamos a una especialista según tu plaza y objetivo.',
+  officeTitle: 'Oficina Matriz Querétaro',
+  officeAddress:
+    'Av. Corregidora Nte. 1116, Piso 9, Arboledas, Santiago de Querétaro, Qro.',
+  officePhone: '+52 (442) 275-9370',
+  officeEmail: 'contacto@mujerinmobiliariayasociadas.com',
+};
 
 export function formatMxn(amount: number): string {
   return new Intl.NumberFormat('es-MX', {
@@ -347,4 +483,3 @@ export function formatMxn(amount: number): string {
     maximumFractionDigits: 0,
   }).format(amount);
 }
-

@@ -1,17 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { X, Check, Building2 } from 'lucide-react';
-import { PropertyListing, formatMxn } from '../data/properties';
+import { LeadRecord, PropertyListing } from '../types/portal';
+import { formatMxn } from '../data/properties';
 
 interface PropertyModalProps {
   property: PropertyListing | null;
   onClose: () => void;
+  onCreateLead: (
+    lead: Omit<LeadRecord, 'id' | 'createdAt' | 'status' | 'internalNotes'>
+  ) => Promise<void>;
 }
 
 export const PropertyModal: React.FC<PropertyModalProps> = ({
   property,
   onClose,
+  onCreateLead,
 }) => {
   const [imgError, setImgError] = useState(false);
+  const [activePhotoIndex, setActivePhotoIndex] = useState(0);
   const [visitorName, setVisitorName] = useState('');
   const [visitorEmail, setVisitorEmail] = useState('');
   const [visitorPhone, setVisitorPhone] = useState('');
@@ -21,6 +27,7 @@ export const PropertyModal: React.FC<PropertyModalProps> = ({
 
   useEffect(() => {
     setImgError(false);
+    setActivePhotoIndex(0);
     setSubmitted(false);
     setFormError('');
     setVisitorName('');
@@ -40,13 +47,30 @@ export const PropertyModal: React.FC<PropertyModalProps> = ({
 
   if (!property) return null;
 
-  const handleTourRequest = (e: React.FormEvent) => {
+  const photos =
+    property.gallery && property.gallery.length > 0 ? property.gallery : [property.image];
+  const currentPhoto = photos[activePhotoIndex] ?? property.image;
+
+  const handleTourRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!visitorName.trim() || !visitorEmail.includes('@') || visitorPhone.trim().length < 8) {
       setFormError('Por favor ingresa tu nombre, correo válido y teléfono a 8+ dígitos.');
       return;
     }
     setFormError('');
+    await onCreateLead({
+      name: visitorName.trim(),
+      email: visitorEmail.trim(),
+      phone: visitorPhone.trim(),
+      intent: 'Recorrido privado',
+      source: 'Ficha de propiedad',
+      propertyId: property.id,
+      propertyTitle: property.title,
+      propertyFolio: property.folio,
+      preferredDate: preferredDate || undefined,
+      notes: `Solicitud de visita para ${property.title} (${property.folio}).`,
+      assignedAdvisor: property.advisor.name,
+    });
     setSubmitted(true);
   };
 
@@ -70,6 +94,12 @@ export const PropertyModal: React.FC<PropertyModalProps> = ({
             <span>{property.operation}</span>
             <span aria-hidden="true">·</span>
             <span>{property.state}</span>
+            {property.status !== 'Disponible' && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span className="text-[#D97706] font-sans font-semibold">{property.status}</span>
+              </>
+            )}
           </div>
           <button
             type="button"
@@ -82,19 +112,49 @@ export const PropertyModal: React.FC<PropertyModalProps> = ({
         </div>
 
         {/* Media header */}
-        <div className="aspect-[16/9] w-full bg-[#F9F8FA] overflow-hidden border-b border-[#E6E2E8]">
-          {!imgError ? (
-            <img
-              src={property.image}
-              alt={`${property.title} en ${property.zone}`}
-              referrerPolicy="no-referrer"
-              onError={() => setImgError(true)}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-[#57534E] bg-gradient-to-br from-[#F9F8FA] to-[#E6E2E8]">
-              <Building2 className="w-8 h-8" />
-              <span className="text-sm font-medium">{property.title}</span>
+        <div className="bg-[#F9F8FA] border-b border-[#E6E2E8]">
+          <div className="aspect-[16/9] w-full overflow-hidden">
+            {!imgError && currentPhoto ? (
+              <img
+                src={currentPhoto}
+                alt={`${property.title} en ${property.zone}`}
+                referrerPolicy="no-referrer"
+                onError={() => setImgError(true)}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-[#57534E] bg-gradient-to-br from-[#F9F8FA] to-[#E6E2E8]">
+                <Building2 className="w-8 h-8" />
+                <span className="text-sm font-medium">{property.title}</span>
+              </div>
+            )}
+          </div>
+
+          {photos.length > 1 && (
+            <div className="px-4 sm:px-6 py-3 flex items-center gap-2.5 overflow-x-auto border-t border-[#E6E2E8] bg-white">
+              {photos.map((url, index) => (
+                <button
+                  key={`${url}-${index}`}
+                  type="button"
+                  onClick={() => {
+                    setActivePhotoIndex(index);
+                    setImgError(false);
+                  }}
+                  aria-label={`Ver fotografía ${index + 1}`}
+                  className={`w-16 h-12 shrink-0 overflow-hidden border transition-colors cursor-pointer ${
+                    index === activePhotoIndex
+                      ? 'border-[#892B84] ring-1 ring-[#892B84]'
+                      : 'border-[#E6E2E8] opacity-75 hover:opacity-100'
+                  }`}
+                >
+                  <img
+                    src={url}
+                    alt={`${property.title} vista ${index + 1}`}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+              ))}
             </div>
           )}
         </div>

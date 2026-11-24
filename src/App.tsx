@@ -5,6 +5,7 @@ import {
   Building2,
   Check,
   ChevronDown,
+  Lock,
   Mail,
   MapPin,
   Menu,
@@ -13,22 +14,44 @@ import {
   X,
 } from 'lucide-react';
 import {
+  DEFAULT_ADVISORS,
+  DEFAULT_LEADS,
+  DEFAULT_PROPERTIES,
+  DEFAULT_SITE_CONTENT,
   HERO_IMAGE,
-  NOSOTRAS_PILLARS,
+} from './data/properties';
+import {
+  AdminSession,
+  Advisor,
+  LeadRecord,
   NosotrasTabId,
   OperationType,
-  PROPERTIES,
   PropertyListing,
   RegionState,
-  SERVICES_LIST,
-  VALORES_LIST,
-} from './data/properties';
+  SiteContent,
+} from './types/portal';
+import {
+  createLead,
+  getSavedAdminSession,
+  loadPortalData,
+  removeAdvisor,
+  removeProperty,
+  resetAllPortalData,
+  saveAdminSession,
+  saveSiteContent,
+  updateLead,
+  upsertAdvisor,
+  upsertProperty,
+} from './lib/portalStore';
+import { isSupabaseConfigured, supabase } from './lib/supabase';
 import { BrandLogo } from './components/BrandLogo';
 import { PropertyCard } from './components/PropertyCard';
 import { PropertyModal } from './components/PropertyModal';
 import { PWAInstallButton } from './components/PWAInstallButton';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { SplashScreen } from './components/SplashScreen';
+import { AdminLogin } from './components/admin/AdminLogin';
+import { AdminDashboard } from './components/admin/AdminDashboard';
 
 type OperationFilter = 'Todas' | OperationType;
 type RegionFilter = 'Todas' | RegionState;
@@ -41,7 +64,26 @@ const NOSOTRAS_SUBITEMS: { id: NosotrasTabId; label: string }[] = [
   { id: 'alianzas', label: 'Alianzas' },
 ];
 
+function checkAdminRoute(): boolean {
+  if (typeof window === 'undefined') return false;
+  return (
+    window.location.pathname === '/admin' ||
+    window.location.pathname === '/admin/' ||
+    window.location.hash === '#admin'
+  );
+}
+
 export default function App() {
+  // Admin & persistence state
+  const [isAdminView, setIsAdminView] = useState<boolean>(checkAdminRoute);
+  const [adminSession, setAdminSession] = useState<AdminSession | null>(() =>
+    getSavedAdminSession()
+  );
+  const [properties, setProperties] = useState<PropertyListing[]>(DEFAULT_PROPERTIES);
+  const [advisors, setAdvisors] = useState<Advisor[]>(DEFAULT_ADVISORS);
+  const [leads, setLeads] = useState<LeadRecord[]>(DEFAULT_LEADS);
+  const [siteContent, setSiteContent] = useState<SiteContent>(DEFAULT_SITE_CONTENT);
+
   // Navigation & Nosotras dropdown
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileNosotrasOpen, setMobileNosotrasOpen] = useState(true);
@@ -76,6 +118,54 @@ export default function App() {
   const [contactError, setContactError] = useState('');
   const [contactSubmitted, setContactSubmitted] = useState(false);
 
+  // Hydrate persisted portal data & Supabase session
+  useEffect(() => {
+    let mounted = true;
+    loadPortalData().then((data) => {
+      if (!mounted) return;
+      setProperties(data.properties);
+      setAdvisors(data.advisors);
+      setLeads(data.leads);
+      setSiteContent(data.siteContent);
+    });
+
+    if (isSupabaseConfigured && supabase) {
+      supabase.auth.getSession().then(({ data }) => {
+        if (!mounted || !data.session?.user) return;
+        const user = data.session.user;
+        const restored: AdminSession = {
+          email: user.email ?? '',
+          name:
+            (user.user_metadata?.full_name as string | undefined) ?? 'Dirección General',
+          role:
+            (user.user_metadata?.role as AdminSession['role'] | undefined) ??
+            'administradora',
+        };
+        setAdminSession(restored);
+        saveAdminSession(restored);
+      });
+    }
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Sync admin route with URL changes
+  useEffect(() => {
+    const syncRoute = () => setIsAdminView(checkAdminRoute());
+    window.addEventListener('popstate', syncRoute);
+    window.addEventListener('hashchange', syncRoute);
+    return () => {
+      window.removeEventListener('popstate', syncRoute);
+      window.removeEventListener('hashchange', syncRoute);
+    };
+  }, []);
+
+  useEffect(() => {
+    setHeroImgError(false);
+  }, [siteContent.heroImage]);
+
   useEffect(() => {
     const handleOutside = (e: MouseEvent) => {
       if (nosotrasMenuRef.current && !nosotrasMenuRef.current.contains(e.target as Node)) {
@@ -95,14 +185,97 @@ export default function App() {
     };
   }, []);
 
+  const openAdmin = () => {
+    setMobileMenuOpen(false);
+    setNosotrasDropdownOpen(false);
+    setIsAdminView(true);
+    try {
+      window.history.pushState(null, '', '/admin');
+    } catch {
+      window.location.hash = 'admin';
+    }
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  };
+
+  const backToPortal = () => {
+    setIsAdminView(false);
+    try {
+      window.history.pushState(null, '', '/');
+    } catch {
+      window.location.hash = '';
+    }
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  };
+
+  const handleAdminLogin = (session: AdminSession) => {
+    setAdminSession(session);
+    saveAdminSession(session);
+  };
+
+  const handleAdminLogout = async () => {
+    saveAdminSession(null);
+    setAdminSession(null);
+    if (isSupabaseConfigured && supabase) {
+      await supabase.auth.signOut();
+    }
+  };
+
+  const handleSaveProperty = async (item: PropertyListing) => {
+    const next = await upsertProperty(item, properties);
+    setProperties(next);
+  };
+
+  const handleDeleteProperty = async (id: string) => {
+    const next = await removeProperty(id, properties);
+    setProperties(next);
+  };
+
+  const handleCreateLead = async (
+    lead: Omit<LeadRecord, 'id' | 'createdAt' | 'status' | 'internalNotes'>
+  ) => {
+    const next = await createLead(lead, leads);
+    setLeads(next);
+  };
+
+  const handleUpdateLead = async (lead: LeadRecord) => {
+    const next = await updateLead(lead, leads);
+    setLeads(next);
+  };
+
+  const handleSaveAdvisor = async (advisor: Advisor) => {
+    const next = await upsertAdvisor(advisor, advisors);
+    setAdvisors(next);
+  };
+
+  const handleDeleteAdvisor = async (id: string) => {
+    const next = await removeAdvisor(id, advisors);
+    setAdvisors(next);
+  };
+
+  const handleSaveSiteContent = async (content: SiteContent) => {
+    await saveSiteContent(content);
+    setSiteContent(content);
+  };
+
+  const handleResetDefaults = async () => {
+    const fresh = await resetAllPortalData();
+    setProperties(fresh.properties);
+    setAdvisors(fresh.advisors);
+    setLeads(fresh.leads);
+    setSiteContent(fresh.siteContent);
+  };
+
   const activeNosotrasPillar = useMemo(
-    () => NOSOTRAS_PILLARS.find((p) => p.id === activeNosotrasTab) ?? NOSOTRAS_PILLARS[0],
-    [activeNosotrasTab]
+    () =>
+      siteContent.nosotrasPillars.find((p) => p.id === activeNosotrasTab) ??
+      siteContent.nosotrasPillars[0],
+    [siteContent.nosotrasPillars, activeNosotrasTab]
   );
 
   const filteredProperties = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    const list = PROPERTIES.filter((item) => {
+    const list = properties.filter((item) => {
+      if (item.status === 'Oculta') return false;
       if (operationFilter !== 'Todas' && item.operation !== operationFilter) return false;
       if (regionFilter !== 'Todas' && item.state !== regionFilter) return false;
       if (onlySaved && !savedIds.includes(item.id)) return false;
@@ -123,8 +296,8 @@ export default function App() {
     if (sortBy === 'area-desc') {
       return [...list].sort((a, b) => b.areaLandM2 - a.areaLandM2);
     }
-    return list;
-  }, [operationFilter, regionFilter, onlySaved, savedIds, searchQuery, sortBy]);
+    return [...list].sort((a, b) => Number(b.featured) - Number(a.featured));
+  }, [properties, operationFilter, regionFilter, onlySaved, savedIds, searchQuery, sortBy]);
 
   const toggleSave = (id: string) => {
     setSavedIds((prev) =>
@@ -173,7 +346,7 @@ export default function App() {
     scrollToSection('contacto');
   };
 
-  const handleContactSubmit = (e: React.FormEvent) => {
+  const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!contactName.trim() || !contactEmail.includes('@') || contactPhone.trim().length < 8) {
       setContactError(
@@ -182,8 +355,41 @@ export default function App() {
       return;
     }
     setContactError('');
+    await handleCreateLead({
+      name: contactName.trim(),
+      email: contactEmail.trim(),
+      phone: contactPhone.trim(),
+      intent: contactIntent,
+      source: 'Contacto general',
+      notes: contactNotes.trim() || `Solicitud general de ${contactIntent.toLowerCase()}.`,
+      assignedAdvisor: '',
+    });
     setContactSubmitted(true);
   };
+
+  if (isAdminView) {
+    if (!adminSession) {
+      return <AdminLogin onLogin={handleAdminLogin} onBackToPortal={backToPortal} />;
+    }
+    return (
+      <AdminDashboard
+        session={adminSession}
+        properties={properties}
+        advisors={advisors}
+        leads={leads}
+        siteContent={siteContent}
+        onBackToPortal={backToPortal}
+        onLogout={handleAdminLogout}
+        onSaveProperty={handleSaveProperty}
+        onDeleteProperty={handleDeleteProperty}
+        onUpdateLead={handleUpdateLead}
+        onSaveAdvisor={handleSaveAdvisor}
+        onDeleteAdvisor={handleDeleteAdvisor}
+        onSaveSiteContent={handleSaveSiteContent}
+        onResetDefaults={handleResetDefaults}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-white text-[#161513] overflow-x-clip">
@@ -281,9 +487,18 @@ export default function App() {
             </a>
           </nav>
 
-          {/* Zone 3: Install App + Primary Action + Mobile Menu Trigger */}
+          {/* Zone 3: Install App + Admin + Primary Action + Mobile Menu Trigger */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <PWAInstallButton variant="header" />
+            <button
+              type="button"
+              onClick={openAdmin}
+              aria-label="Acceso Administración"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 border border-[#E6E2E8] bg-white text-[#161513] text-xs font-medium hover:border-[#892B84] hover:text-[#892B84] transition-colors whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#892B84]"
+            >
+              <Lock className="w-3.5 h-3.5 text-[#892B84]" />
+              <span>Admin</span>
+            </button>
             <button
               type="button"
               onClick={() => scrollToSection('contacto')}
@@ -380,6 +595,14 @@ export default function App() {
                 Agendar Asesoría
               </button>
               <PWAInstallButton variant="drawer" />
+              <button
+                type="button"
+                onClick={openAdmin}
+                className="w-full py-2.5 px-4 border border-[#E6E2E8] bg-[#F9F8FA] text-[#161513] text-xs font-semibold hover:border-[#892B84] hover:text-[#892B84] transition-colors inline-flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Lock className="w-3.5 h-3.5 text-[#892B84]" />
+                <span>Acceso Administración</span>
+              </button>
             </div>
           </div>
         )}
@@ -394,15 +617,13 @@ export default function App() {
               <div className="lg:col-span-6 flex flex-col justify-between gap-7 sm:gap-8 min-w-0">
                 <div>
                   <p className="text-[11px] sm:text-xs uppercase tracking-[0.16em] sm:tracking-[0.22em] text-[#892B84] font-semibold">
-                    Santiago de Querétaro · Yucatán · Estado de México
+                    {siteContent.heroEyebrow}
                   </p>
                   <h1 className="mt-3 sm:mt-4 text-[clamp(2.05rem,4.3vw,3.85rem)] font-medium tracking-tight text-[#161513] leading-[1.08] [text-wrap:balance]">
-                    Patrimonio inmobiliario con criterio arquitectónico y certeza jurídica.
+                    {siteContent.heroTitle}
                   </h1>
                   <p className="mt-5 text-[15px] sm:text-base leading-relaxed text-[#57534E] max-w-xl">
-                    Firma mexicana dirigida por mujeres especialistas en compra, venta, renta y
-                    desarrollos. Acompañamiento gratuito y transparente desde la valuación hasta la
-                    firma notarial.
+                    {siteContent.heroSubtitle}
                   </p>
                 </div>
 
@@ -476,8 +697,8 @@ export default function App() {
                 <div className="relative flex-1 min-h-[260px] sm:min-h-[360px] lg:min-h-[460px] bg-[#F9F8FA] border border-[#E6E2E8] overflow-hidden">
                   {!heroImgError ? (
                     <img
-                      src={HERO_IMAGE}
-                      alt="Residencia contemporánea de piedra caliza con espejo de agua en Querétaro"
+                      src={siteContent.heroImage || HERO_IMAGE}
+                      alt={siteContent.heroImageCaptionTitle}
                       referrerPolicy="no-referrer"
                       onError={() => setHeroImgError(true)}
                       className="w-full h-full lg:h-full object-cover"
@@ -491,11 +712,9 @@ export default function App() {
                     </div>
                   )}
                   <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6">
-                    <p className="text-xs text-white/80">
-                      Cumbres del Lago · Juriquilla, Querétaro
-                    </p>
+                    <p className="text-xs text-white/80">{siteContent.heroImageCaptionZone}</p>
                     <p className="mt-1 font-editorial text-xl text-white">
-                      Residencia Cantilever &amp; Espejo de Agua
+                      {siteContent.heroImageCaptionTitle}
                     </p>
                   </div>
                 </div>
@@ -504,43 +723,17 @@ export default function App() {
 
             {/* Full-Width 4-Column Capabilities Strip */}
             <div className="mt-12 pt-8 border-t border-[#E6E2E8] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div>
-                <p className="font-mono text-xs text-[#892B84] font-semibold tabular-nums">01</p>
-                <h2 className="mt-1 font-sans text-sm font-semibold text-[#161513]">
-                  Asesoría inicial sin costo
-                </h2>
-                <p className="mt-1 text-xs leading-relaxed text-[#57534E]">
-                  Diagnóstico patrimonial personalizado para compradores, propietarios e
-                  inversionistas.
-                </p>
-              </div>
-              <div>
-                <p className="font-mono text-xs text-[#892B84] font-semibold tabular-nums">02</p>
-                <h2 className="mt-1 font-sans text-sm font-semibold text-[#161513]">
-                  Valuación comercial real
-                </h2>
-                <p className="mt-1 text-xs leading-relaxed text-[#57534E]">
-                  Análisis comparativo por metro cuadrado y cierres escriturados por corredor.
-                </p>
-              </div>
-              <div>
-                <p className="font-mono text-xs text-[#892B84] font-semibold tabular-nums">03</p>
-                <h2 className="mt-1 font-sans text-sm font-semibold text-[#161513]">
-                  Dictamen legal y fiscal
-                </h2>
-                <p className="mt-1 text-xs leading-relaxed text-[#57534E]">
-                  Revisión previa de gravámenes, escrituras, regímenes y cálculo de impuestos.
-                </p>
-              </div>
-              <div>
-                <p className="font-mono text-xs text-[#892B84] font-semibold tabular-nums">04</p>
-                <h2 className="mt-1 font-sans text-sm font-semibold text-[#161513]">
-                  Red de asesoras en 3 plazas
-                </h2>
-                <p className="mt-1 text-xs leading-relaxed text-[#57534E]">
-                  Operación directa en Querétaro, Mérida y corredores clave del Estado de México.
-                </p>
-              </div>
+              {siteContent.capabilities.map((cap) => (
+                <div key={cap.number}>
+                  <p className="font-mono text-xs text-[#892B84] font-semibold tabular-nums">
+                    {cap.number}
+                  </p>
+                  <h2 className="mt-1 font-sans text-sm font-semibold text-[#161513]">
+                    {cap.title}
+                  </h2>
+                  <p className="mt-1 text-xs leading-relaxed text-[#57534E]">{cap.description}</p>
+                </div>
+              ))}
             </div>
           </div>
         </section>
@@ -551,10 +744,10 @@ export default function App() {
             <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-8 border-b border-[#E6E2E8]">
               <div className="max-w-2xl">
                 <p className="text-xs uppercase tracking-[0.22em] text-[#892B84] font-semibold">
-                  Nosotras · Identidad Institucional
+                  {siteContent.nosotrasKicker}
                 </p>
                 <h2 className="mt-2 text-3xl lg:text-4xl font-medium tracking-tight text-[#161513] [text-wrap:balance]">
-                  Mujeres líderes construyendo certeza patrimonial en México
+                  {siteContent.nosotrasHeading}
                 </h2>
               </div>
 
@@ -564,7 +757,7 @@ export default function App() {
                 aria-label="Pilares institucionales de Nosotras"
                 className="inline-flex flex-wrap items-center gap-1 p-1 bg-white border border-[#E6E2E8] self-start lg:self-auto max-w-full"
               >
-                {NOSOTRAS_PILLARS.map((pillar) => (
+                {siteContent.nosotrasPillars.map((pillar) => (
                   <button
                     key={pillar.id}
                     type="button"
@@ -584,59 +777,61 @@ export default function App() {
             </div>
 
             {/* Active Pillar Spotlight */}
-            <div className="mt-8 bg-white border border-[#E6E2E8] p-6 sm:p-10">
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
-                <div className="lg:col-span-6 space-y-4 min-w-0">
-                  <p className="font-mono text-xs uppercase tracking-[0.18em] text-[#892B84] font-semibold">
-                    {activeNosotrasPillar.kicker}
-                  </p>
-                  <h3 className="text-2xl sm:text-3xl font-medium tracking-tight text-[#161513] leading-snug">
-                    {activeNosotrasPillar.title}
-                  </h3>
-                  <p className="text-[15px] leading-relaxed text-[#57534E]">
-                    {activeNosotrasPillar.body}
-                  </p>
-                </div>
+            {activeNosotrasPillar && (
+              <div className="mt-8 bg-white border border-[#E6E2E8] p-6 sm:p-10">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+                  <div className="lg:col-span-6 space-y-4 min-w-0">
+                    <p className="font-mono text-xs uppercase tracking-[0.18em] text-[#892B84] font-semibold">
+                      {activeNosotrasPillar.kicker}
+                    </p>
+                    <h3 className="text-2xl sm:text-3xl font-medium tracking-tight text-[#161513] leading-snug">
+                      {activeNosotrasPillar.title}
+                    </h3>
+                    <p className="text-[15px] leading-relaxed text-[#57534E]">
+                      {activeNosotrasPillar.body}
+                    </p>
+                  </div>
 
-                <div className="lg:col-span-6 min-w-0">
-                  {activeNosotrasTab === 'valores' ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {VALORES_LIST.map((valor) => (
-                        <div
-                          key={valor.number}
-                          className="p-4 bg-[#F9F8FA] border border-[#E6E2E8]"
-                        >
-                          <p className="font-mono text-[11px] text-[#892B84] font-semibold tabular-nums">
-                            {valor.number}
-                          </p>
-                          <p className="mt-1 font-sans text-sm font-semibold text-[#161513]">
-                            {valor.name}
-                          </p>
-                          <p className="mt-1 text-xs leading-relaxed text-[#57534E]">
-                            {valor.detail}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="border-t border-[#E6E2E8] divide-y divide-[#E6E2E8]">
-                      {activeNosotrasPillar.highlights.map((item, idx) => (
-                        <div key={item} className="py-4 flex items-start gap-3.5">
-                          <span className="font-mono text-xs text-[#892B84] font-semibold mt-0.5 tabular-nums">
-                            0{idx + 1}
-                          </span>
-                          <p className="text-sm leading-relaxed text-[#161513]">{item}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <div className="lg:col-span-6 min-w-0">
+                    {activeNosotrasTab === 'valores' ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {siteContent.valoresList.map((valor) => (
+                          <div
+                            key={valor.number}
+                            className="p-4 bg-[#F9F8FA] border border-[#E6E2E8]"
+                          >
+                            <p className="font-mono text-[11px] text-[#892B84] font-semibold tabular-nums">
+                              {valor.number}
+                            </p>
+                            <p className="mt-1 font-sans text-sm font-semibold text-[#161513]">
+                              {valor.name}
+                            </p>
+                            <p className="mt-1 text-xs leading-relaxed text-[#57534E]">
+                              {valor.detail}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="border-t border-[#E6E2E8] divide-y divide-[#E6E2E8]">
+                        {activeNosotrasPillar.highlights.map((item, idx) => (
+                          <div key={`${item}-${idx}`} className="py-4 flex items-start gap-3.5">
+                            <span className="font-mono text-xs text-[#892B84] font-semibold mt-0.5 tabular-nums">
+                              0{idx + 1}
+                            </span>
+                            <p className="text-sm leading-relaxed text-[#161513]">{item}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* 4-Pillar Quick Index */}
             <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {NOSOTRAS_PILLARS.map((pillar) => {
+              {siteContent.nosotrasPillars.map((pillar) => {
                 const isActive = activeNosotrasTab === pillar.id;
                 return (
                   <button
@@ -672,25 +867,25 @@ export default function App() {
         </section>
 
         {/* Section 3: Servicios */}
-        <section id="servicios" className="py-14 sm:py-20 lg:py-24 bg-white border-t border-[#E6E2E8]">
+        <section
+          id="servicios"
+          className="py-14 sm:py-20 lg:py-24 bg-white border-t border-[#E6E2E8]"
+        >
           <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10">
             <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-8 border-b border-[#E6E2E8]">
               <div className="max-w-2xl">
                 <p className="text-xs uppercase tracking-[0.22em] text-[#892B84] font-semibold">
-                  Servicios Especializados
+                  {siteContent.servicesKicker}
                 </p>
                 <h2 className="mt-2 text-3xl lg:text-4xl font-medium tracking-tight text-[#161513] [text-wrap:balance]">
-                  Soluciones integrales para compra, venta, renta y desarrollos
+                  {siteContent.servicesHeading}
                 </h2>
               </div>
-              <p className="text-sm text-[#57534E] max-w-md">
-                Asesoría gratuita inicial combinada con representación comercial, valuación técnica
-                y blindaje jurídico.
-              </p>
+              <p className="text-sm text-[#57534E] max-w-md">{siteContent.servicesSubheading}</p>
             </div>
 
             <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6">
-              {SERVICES_LIST.map((service) => (
+              {siteContent.servicesList.map((service) => (
                 <div
                   key={service.number}
                   className="bg-white border border-[#E6E2E8] p-6 sm:p-8 flex flex-col justify-between gap-6 hover:border-[#892B84]/45 transition-colors"
@@ -734,7 +929,10 @@ export default function App() {
         </section>
 
         {/* Section 4: Inmuebles (Curated Property Portfolio) */}
-        <section id="inmuebles" className="py-14 sm:py-20 lg:py-24 bg-[#F9F8FA] border-t border-[#E6E2E8]">
+        <section
+          id="inmuebles"
+          className="py-14 sm:py-20 lg:py-24 bg-[#F9F8FA] border-t border-[#E6E2E8]"
+        >
           <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10">
             <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-8 border-b border-[#E6E2E8]">
               <div>
@@ -877,14 +1075,13 @@ export default function App() {
               <div className="lg:col-span-5 space-y-8 min-w-0">
                 <div>
                   <p className="text-xs uppercase tracking-[0.22em] text-[#D88FD4] font-semibold">
-                    Contacto · Atención Personalizada
+                    {siteContent.contactKicker}
                   </p>
                   <h2 className="mt-3 text-3xl lg:text-4xl font-medium tracking-tight text-white [text-wrap:balance]">
-                    Conversa con una socia asesora sin costo inicial
+                    {siteContent.contactHeading}
                   </h2>
                   <p className="mt-4 text-[15px] leading-relaxed text-[#D6D3D1]">
-                    Ya sea que busques adquirir patrimonio, comercializar una propiedad o evaluar
-                    tierra para desarrollo, asignamos a una especialista según tu plaza y objetivo.
+                    {siteContent.contactSubtitle}
                   </p>
                 </div>
 
@@ -892,28 +1089,26 @@ export default function App() {
                   <div className="flex items-start gap-3">
                     <MapPin className="w-4 h-4 text-[#D88FD4] mt-1 shrink-0" />
                     <div className="min-w-0">
-                      <p className="font-medium text-white">Oficina Matriz Querétaro</p>
-                      <p className="text-[#A8A29E]">
-                        Av. Corregidora Nte. 1116, Piso 9, Arboledas, Santiago de Querétaro, Qro.
-                      </p>
+                      <p className="font-medium text-white">{siteContent.officeTitle}</p>
+                      <p className="text-[#A8A29E]">{siteContent.officeAddress}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <Phone className="w-4 h-4 text-[#D88FD4] shrink-0" />
                     <a
-                      href="tel:+524422759370"
+                      href={`tel:${siteContent.officePhone.replace(/[^+\d]/g, '')}`}
                       className="font-mono text-white hover:text-[#D88FD4] transition-colors tabular-nums"
                     >
-                      +52 (442) 275-9370
+                      {siteContent.officePhone}
                     </a>
                   </div>
                   <div className="flex items-center gap-3">
                     <Mail className="w-4 h-4 text-[#D88FD4] shrink-0" />
                     <a
-                      href="mailto:contacto@mujerinmobiliariayasociadas.com"
+                      href={`mailto:${siteContent.officeEmail}`}
                       className="text-white hover:text-[#D88FD4] transition-colors break-all"
                     >
-                      contacto@mujerinmobiliariayasociadas.com
+                      {siteContent.officeEmail}
                     </a>
                   </div>
                 </div>
@@ -1090,6 +1285,14 @@ export default function App() {
             <a href="#contacto" className="hover:text-[#892B84] transition-colors">
               Contacto
             </a>
+            <button
+              type="button"
+              onClick={openAdmin}
+              className="inline-flex items-center gap-1.5 text-[#57534E] hover:text-[#892B84] transition-colors cursor-pointer"
+            >
+              <Lock className="w-3 h-3" />
+              <span>Acceso Administración</span>
+            </button>
           </div>
 
           <p className="text-xs text-[#57534E]">
@@ -1102,6 +1305,7 @@ export default function App() {
       <PropertyModal
         property={selectedProperty}
         onClose={() => setSelectedProperty(null)}
+        onCreateLead={handleCreateLead}
       />
     </div>
   );
